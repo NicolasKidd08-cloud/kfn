@@ -2,6 +2,7 @@
 -- Place this in StarterGui as a LocalScript
 
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
 -- Create ScreenGui
@@ -17,6 +18,7 @@ MainFrame.Size = UDim2.new(0, 350, 0, 400)
 MainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
 -- Add UI Corner
@@ -66,15 +68,15 @@ Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TitleBar
 
--- Close Button
+-- Close/Minimize Button
 local CloseButton = Instance.new("TextButton")
 CloseButton.Name = "CloseButton"
 CloseButton.Size = UDim2.new(0, 35, 0, 35)
 CloseButton.Position = UDim2.new(1, -40, 0, 5)
 CloseButton.BackgroundColor3 = Color3.fromRGB(220, 50, 80)
-CloseButton.Text = "✕"
+CloseButton.Text = "−"
 CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.TextSize = 18
+CloseButton.TextSize = 22
 CloseButton.Font = Enum.Font.GothamBold
 CloseButton.Parent = TitleBar
 
@@ -82,29 +84,37 @@ local CloseCorner = Instance.new("UICorner")
 CloseCorner.CornerRadius = UDim.new(0, 8)
 CloseCorner.Parent = CloseButton
 
+-- Content Frame (everything below title bar)
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "ContentFrame"
+ContentFrame.Size = UDim2.new(1, 0, 1, -45)
+ContentFrame.Position = UDim2.new(0, 0, 0, 45)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = MainFrame
+
 -- Instructions
 local Instructions = Instance.new("TextLabel")
 Instructions.Size = UDim2.new(1, -30, 0, 40)
-Instructions.Position = UDim2.new(0, 15, 0, 55)
+Instructions.Position = UDim2.new(0, 15, 0, 10)
 Instructions.BackgroundTransparency = 1
 Instructions.Text = "Click any player to spam ALL commands!"
 Instructions.TextColor3 = Color3.fromRGB(200, 200, 255)
 Instructions.TextSize = 13
 Instructions.Font = Enum.Font.Gotham
 Instructions.TextWrapped = true
-Instructions.Parent = MainFrame
+Instructions.Parent = ContentFrame
 
 -- Player List Frame
 local PlayerListFrame = Instance.new("ScrollingFrame")
 PlayerListFrame.Name = "PlayerListFrame"
-PlayerListFrame.Size = UDim2.new(1, -30, 1, -110)
-PlayerListFrame.Position = UDim2.new(0, 15, 0, 95)
+PlayerListFrame.Size = UDim2.new(1, -30, 1, -65)
+PlayerListFrame.Position = UDim2.new(0, 15, 0, 50)
 PlayerListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 PlayerListFrame.BorderSizePixel = 0
 PlayerListFrame.ScrollBarThickness = 8
 PlayerListFrame.ScrollBarImageColor3 = Color3.fromRGB(120, 40, 200)
 PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-PlayerListFrame.Parent = MainFrame
+PlayerListFrame.Parent = ContentFrame
 
 local ListCorner = Instance.new("UICorner")
 ListCorner.CornerRadius = UDim.new(0, 10)
@@ -133,12 +143,14 @@ local commandsList = {
 	";morph"
 }
 
+-- Track if minimized
+local isMinimized = false
+
 -- Function to spam all commands on a player
 local function spamCommands(playerName)
-	-- Execute all commands with small delays
 	for i, cmd in ipairs(commandsList) do
 		task.spawn(function()
-			wait((i - 1) * 0.1) -- Stagger commands slightly
+			wait((i - 1) * 0.1)
 			local fullCommand = cmd .. " " .. playerName
 			game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(fullCommand, "All")
 		end)
@@ -198,14 +210,18 @@ local function createPlayerButton(player)
 	SpamIcon.Parent = PlayerButton
 	
 	-- Hover effect
+	local isHovering = false
+	
 	PlayerButton.MouseEnter:Connect(function()
-		game:GetService("TweenService"):Create(PlayerButton, TweenInfo.new(0.2), {
+		isHovering = true
+		TweenService:Create(PlayerButton, TweenInfo.new(0.15), {
 			BackgroundColor3 = Color3.fromRGB(120, 40, 200)
 		}):Play()
 	end)
 	
 	PlayerButton.MouseLeave:Connect(function()
-		game:GetService("TweenService"):Create(PlayerButton, TweenInfo.new(0.2), {
+		isHovering = false
+		TweenService:Create(PlayerButton, TweenInfo.new(0.15), {
 			BackgroundColor3 = Color3.fromRGB(50, 50, 70)
 		}):Play()
 	end)
@@ -220,19 +236,16 @@ end
 
 -- Function to update player list
 local function updatePlayerList()
-	-- Clear existing buttons
 	for _, child in pairs(PlayerListFrame:GetChildren()) do
 		if child:IsA("TextButton") then
 			child:Destroy()
 		end
 	end
 	
-	-- Add all players
 	for _, player in pairs(Players:GetPlayers()) do
 		createPlayerButton(player)
 	end
 	
-	-- Update canvas size
 	PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 16)
 end
 
@@ -254,13 +267,29 @@ UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 16)
 end)
 
--- Close button functionality
+-- Minimize/Maximize functionality
 CloseButton.MouseButton1Click:Connect(function()
-	MainFrame.Visible = not MainFrame.Visible
+	isMinimized = not isMinimized
+	
+	if isMinimized then
+		-- Minimize
+		CloseButton.Text = "+"
+		TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 350, 0, 45)
+		}):Play()
+		ContentFrame.Visible = false
+	else
+		-- Maximize
+		CloseButton.Text = "−"
+		ContentFrame.Visible = true
+		TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 350, 0, 400)
+		}):Play()
+	end
 end)
 
 -- Make draggable
-local dragging
+local dragging = false
 local dragInput
 local dragStart
 local startPos
