@@ -92,14 +92,57 @@ ContentFrame.Position = UDim2.new(0, 0, 0, 45)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
+-- Toggle buttons frame
+local ToggleFrame = Instance.new("Frame")
+ToggleFrame.Name = "ToggleFrame"
+ToggleFrame.Size = UDim2.new(1, -20, 0, 45)
+ToggleFrame.Position = UDim2.new(0, 10, 0, 5)
+ToggleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+ToggleFrame.BorderSizePixel = 0
+ToggleFrame.Parent = ContentFrame
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 8)
+ToggleCorner.Parent = ToggleFrame
+
+-- Toggle states
+local espEnabled = true
+local jailInverseMode = false
+local rocketBalloonMode = false
+
+-- Function to create toggle button
+local function createToggleButton(name, position, toggleVar)
+	local Button = Instance.new("TextButton")
+	Button.Name = name
+	Button.Size = UDim2.new(0, 75, 0, 30)
+	Button.Position = position
+	Button.BackgroundColor3 = toggleVar and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+	Button.Text = name
+	Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Button.TextSize = 11
+	Button.Font = Enum.Font.GothamBold
+	Button.Parent = ToggleFrame
+	
+	local BtnCorner = Instance.new("UICorner")
+	BtnCorner.CornerRadius = UDim.new(0, 6)
+	BtnCorner.Parent = Button
+	
+	return Button
+end
+
+local ESPButton = createToggleButton("ESP", UDim2.new(0, 5, 0.5, -15), espEnabled)
+local JailButton = createToggleButton("Jail+Inv", UDim2.new(0, 85, 0.5, -15), jailInverseMode)
+local RocketButton = createToggleButton("Rkt+Bal", UDim2.new(0, 165, 0.5, -15), rocketBalloonMode)
+local CooldownButton = createToggleButton("CD", UDim2.new(0, 245, 0.5, -15), false)
+
 -- Instructions
 local Instructions = Instance.new("TextLabel")
-Instructions.Size = UDim2.new(1, -30, 0, 40)
-Instructions.Position = UDim2.new(0, 15, 0, 10)
+Instructions.Size = UDim2.new(1, -30, 0, 30)
+Instructions.Position = UDim2.new(0, 15, 0, 55)
 Instructions.BackgroundTransparency = 1
-Instructions.Text = "Click any player to spam ALL commands!"
+Instructions.Text = "Click any player to spam commands!"
 Instructions.TextColor3 = Color3.fromRGB(200, 200, 255)
-Instructions.TextSize = 13
+Instructions.TextSize = 12
 Instructions.Font = Enum.Font.Gotham
 Instructions.TextWrapped = true
 Instructions.Parent = ContentFrame
@@ -107,8 +150,8 @@ Instructions.Parent = ContentFrame
 -- Player List Frame
 local PlayerListFrame = Instance.new("ScrollingFrame")
 PlayerListFrame.Name = "PlayerListFrame"
-PlayerListFrame.Size = UDim2.new(1, -30, 1, -65)
-PlayerListFrame.Position = UDim2.new(0, 15, 0, 50)
+PlayerListFrame.Size = UDim2.new(1, -30, 1, -100)
+PlayerListFrame.Position = UDim2.new(0, 15, 0, 90)
 PlayerListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 PlayerListFrame.BorderSizePixel = 0
 PlayerListFrame.ScrollBarThickness = 8
@@ -135,26 +178,234 @@ UIPadding.Parent = PlayerListFrame
 -- All commands to spam
 local commandsList = {
 	";rocket",
+	";rocket",
+	";rocket",
+	";jumpscare",
+	";balloon",
 	";ragdoll",
 	";balloon",
 	";tiny",
 	";jail",
 	";inverse",
-	";morph"
+	";morph",
+	";rocket",
+	";jumpscare",
+	";ragdoll",
+	";balloon"
 }
+
+-- Cooldown system
+local onCooldown = false
+local cooldownTime = 3
+
+-- Cooldown display (movable, positioned in corner)
+local CooldownDisplay = Instance.new("Frame")
+CooldownDisplay.Name = "CooldownDisplay"
+CooldownDisplay.Size = UDim2.new(0, 150, 0, 60)
+CooldownDisplay.Position = UDim2.new(1, -160, 1, -70)
+CooldownDisplay.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+CooldownDisplay.BorderSizePixel = 0
+CooldownDisplay.Visible = false
+CooldownDisplay.Parent = ScreenGui
+
+local CDCorner = Instance.new("UICorner")
+CDCorner.CornerRadius = UDim.new(0, 10)
+CDCorner.Parent = CooldownDisplay
+
+local CDGradient = Instance.new("UIGradient")
+CDGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(140, 60, 220)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 30, 180))
+}
+CDGradient.Rotation = 45
+CDGradient.Parent = CooldownDisplay
+
+local CDText = Instance.new("TextLabel")
+CDText.Size = UDim2.new(1, -10, 0, 25)
+CDText.Position = UDim2.new(0, 5, 0, 5)
+CDText.BackgroundTransparency = 1
+CDText.Text = "COOLDOWN"
+CDText.TextColor3 = Color3.fromRGB(255, 255, 255)
+CDText.TextSize = 14
+CDText.Font = Enum.Font.GothamBold
+CDText.Parent = CooldownDisplay
+
+local CDTimer = Instance.new("TextLabel")
+CDTimer.Size = UDim2.new(1, -10, 0, 25)
+CDTimer.Position = UDim2.new(0, 5, 0, 30)
+CDTimer.BackgroundTransparency = 1
+CDTimer.Text = "3.0s"
+CDTimer.TextColor3 = Color3.fromRGB(255, 100, 100)
+CDTimer.TextSize = 18
+CDTimer.Font = Enum.Font.GothamBold
+CDTimer.Parent = CooldownDisplay
+
+-- Make cooldown display draggable
+local cdDragging = false
+local cdDragInput
+local cdDragStart
+local cdStartPos
+
+CooldownDisplay.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		cdDragging = true
+		cdDragStart = input.Position
+		cdStartPos = CooldownDisplay.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				cdDragging = false
+			end
+		end)
+	end
+end)
+
+CooldownDisplay.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		cdDragInput = input
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if input == cdDragInput and cdDragging then
+		local delta = input.Position - cdDragStart
+		CooldownDisplay.Position = UDim2.new(cdStartPos.X.Scale, cdStartPos.X.Offset + delta.X, cdStartPos.Y.Scale, cdStartPos.Y.Offset + delta.Y)
+	end
+end)
 
 -- Track if minimized
 local isMinimized = false
 
+-- ESP for other script users
+local function addESP(player)
+	if player == LocalPlayer then return end
+	
+	local function createHighlight(character)
+		-- Remove old highlight if exists
+		local oldHighlight = character:FindFirstChild("NexaESP")
+		if oldHighlight then oldHighlight:Destroy() end
+		
+		-- Create new highlight
+		local highlight = Instance.new("Highlight")
+		highlight.Name = "NexaESP"
+		highlight.FillColor = Color3.fromRGB(140, 60, 220)
+		highlight.OutlineColor = Color3.fromRGB(200, 100, 255)
+		highlight.FillTransparency = 0.5
+		highlight.OutlineTransparency = 0
+		highlight.Parent = character
+	end
+	
+	-- Apply to current character
+	if player.Character then
+		createHighlight(player.Character)
+	end
+	
+	-- Apply when character respawns
+	player.CharacterAdded:Connect(function(character)
+		createHighlight(character)
+	end)
+end
+
+-- Check if player is using the script by looking for the GUI
+local function checkForScriptUsers()
+	if not espEnabled then return end
+	
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			task.spawn(function()
+				-- Check if they have the Nexa Spammer GUI
+				local success = pcall(function()
+					local theirGui = player:WaitForChild("PlayerGui", 2):FindFirstChild("NexaSpammer")
+					if theirGui then
+						addESP(player)
+					end
+				end)
+			end)
+		end
+	end
+end
+
+-- Run check periodically
+task.spawn(function()
+	while true do
+		checkForScriptUsers()
+		task.wait(5) -- Check every 5 seconds
+	end
+end)
+
+-- Toggle button functionality
+ESPButton.MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+	ESPButton.BackgroundColor3 = espEnabled and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+	
+	-- Remove all ESP if disabled
+	if not espEnabled then
+		for _, player in pairs(Players:GetPlayers()) do
+			if player.Character then
+				local highlight = player.Character:FindFirstChild("NexaESP")
+				if highlight then highlight:Destroy() end
+			end
+		end
+	else
+		checkForScriptUsers()
+	end
+end)
+
+JailButton.MouseButton1Click:Connect(function()
+	jailInverseMode = not jailInverseMode
+	JailButton.BackgroundColor3 = jailInverseMode and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+	
+	-- Disable other mode
+	if jailInverseMode then
+		rocketBalloonMode = false
+		RocketButton.BackgroundColor3 = Color3.fromRGB(180, 70, 70)
+	end
+end)
+
+RocketButton.MouseButton1Click:Connect(function()
+	rocketBalloonMode = not rocketBalloonMode
+	RocketButton.BackgroundColor3 = rocketBalloonMode and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+	
+	-- Disable other mode
+	if rocketBalloonMode then
+		jailInverseMode = false
+		JailButton.BackgroundColor3 = Color3.fromRGB(180, 70, 70)
+	end
+end)
+
+CooldownButton.MouseButton1Click:Connect(function()
+	local enabled = CooldownButton.BackgroundColor3 == Color3.fromRGB(180, 70, 70)
+	CooldownButton.BackgroundColor3 = enabled and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+end)
+
 -- Function to spam all commands on a player
 local function spamCommands(playerName)
+	-- Check cooldown
+	if onCooldown and CooldownButton.BackgroundColor3 == Color3.fromRGB(70, 180, 130) then
+		return -- Don't execute if on cooldown and cooldown is enabled
+	end
+	
 	-- Use TextChatService (new chat system) or legacy chat
 	local TextChatService = game:GetService("TextChatService")
 	local Players = game:GetService("Players")
 	
-	for i, cmd in ipairs(commandsList) do
+	-- Determine which commands to use based on toggles
+	local cmdsToUse = {}
+	
+	if jailInverseMode then
+		-- Only jail and inverse
+		cmdsToUse = {";jail", ";inverse", ";jail", ";inverse"}
+	elseif rocketBalloonMode then
+		-- Only rocket and balloon
+		cmdsToUse = {";rocket", ";balloon", ";rocket", ";balloon", ";rocket"}
+	else
+		-- All commands
+		cmdsToUse = commandsList
+	end
+	
+	for i, cmd in ipairs(cmdsToUse) do
 		task.spawn(function()
-			task.wait((i - 1) * 0.15)
+			task.wait((i - 1) * 0.001)
 			local fullCommand = cmd .. " " .. playerName
 			
 			-- Try TextChatService first (new Roblox chat)
@@ -188,6 +439,43 @@ local function spamCommands(playerName)
 				end
 			end)
 		end)
+	end
+	
+	-- Extra rockets if not in special mode
+	if not jailInverseMode and not rocketBalloonMode then
+		for i = 1, 5 do
+			task.spawn(function()
+				task.wait(0.001 * i)
+				local rocketCmd = ";rocket " .. playerName
+				
+				pcall(function()
+					local channel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+					if channel then
+						channel:SendAsync(rocketCmd)
+					end
+				end)
+				
+				pcall(function()
+					Players.LocalPlayer:Chat(rocketCmd)
+				end)
+			end)
+		end
+	end
+	
+	-- Start cooldown if enabled
+	if CooldownButton.BackgroundColor3 == Color3.fromRGB(70, 180, 130) then
+		onCooldown = true
+		CooldownDisplay.Visible = true
+		
+		local timeLeft = cooldownTime
+		while timeLeft > 0 do
+			CDTimer.Text = string.format("%.1fs", timeLeft)
+			task.wait(0.1)
+			timeLeft = timeLeft - 0.1
+		end
+		
+		onCooldown = false
+		CooldownDisplay.Visible = false
 	end
 end
 
