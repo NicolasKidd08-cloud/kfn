@@ -1,30 +1,26 @@
--- Fly Script by Nexa
--- This is a LocalScript. It gives the player the ability to fly.
+-- Fly Script with UI (Anti-Rubberband Bypass) by Nexa
+-- Put this LocalScript in StarterPlayer > StarterPlayerScripts
 
 -- ==========================================================
 -- || CONFIGURATION ||
 -- ==========================================================
-local FLY_SPEED = 75       -- How fast you fly (the default walk speed is 16)
-local FLY_KEY = Enum.KeyCode.F -- The key to press to toggle flying on/off
+local FLY_SPEED = 75       -- How fast you fly
+local FLY_KEY = Enum.KeyCode.F -- The key to press to toggle flying
 
 -- ==========================================================
 -- || SERVICES ||
 -- ==========================================================
+local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
 
 -- ==========================================================
 -- || VARIABLES ||
 -- ==========================================================
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
 local isFlying = false
-local bodyVelocity = nil
-local bodyGyro = nil
+local moveDirection = Vector3.new(0, 0, 0)
+local bodyGyro, bodyVelocity
 
 local moveKeys = {
 	[Enum.KeyCode.W] = Vector3.new(0, 0, -1),
@@ -34,95 +30,128 @@ local moveKeys = {
 	[Enum.KeyCode.Space] = Vector3.new(0, 1, 0),
 	[Enum.KeyCode.LeftControl] = Vector3.new(0, -1, 0),
 }
-local moveDirection = Vector3.new(0, 0, 0)
+
+-- ==========================================================
+-- || CREATE THE UI ||
+-- ==========================================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FlyUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local flyButton = Instance.new("TextButton")
+flyButton.Name = "FlyToggleButton"
+-- ... (UI properties are the same as before)
+flyButton.Text = "Fly: OFF"
+flyButton.Font = Enum.Font.SourceSansBold
+flyButton.TextColor3 = Color3.new(1, 1, 1)
+flyButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+flyButton.BorderColor3 = Color3.fromRGB(20, 20, 20)
+flyButton.BorderSizePixel = 2
+flyButton.Size = UDim2.new(0, 100, 0, 40)
+flyButton.Position = UDim2.new(1, -110, 1, -50)
+flyButton.Parent = screenGui
 
 -- ==========================================================
 -- || FUNCTIONS ||
 -- ==========================================================
 
--- Toggles the flight state
+local function setupFlight(character)
+	if not character then return end
+	
+	local humanoid = character:WaitForChild("Humanoid")
+	local rootPart = character:WaitForChild("HumanoidRootPart")
+	
+	humanoid.Died:Connect(function()
+		-- Make sure to clean up if the player was flying when they died
+		if isFlying then
+			isFlying = false
+			if bodyGyro then bodyGyro:Destroy() end
+			if bodyVelocity then bodyVelocity:Destroy() end
+			flyButton.Text = "Fly: OFF"
+			flyButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+		end
+	end)
+end
+
 local function toggleFly()
+	local character = player.Character
+	if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+	
+	local rootPart = character.HumanoidRootPart
+	
 	isFlying = not isFlying
 	
 	if isFlying then
-		-- Player wants to fly, create the physics objects
-		print("Nexa's Fly Script: Flying ENABLED")
+		flyButton.Text = "Fly: ON"
+		flyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
 		
-		-- Gyro keeps the player upright
-		bodyGyro = Instance.new("BodyGyro")
+		bodyGyro = Instance.new("BodyGyro", rootPart)
 		bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-		bodyGyro.CFrame = rootPart.CFrame
-		bodyGyro.Parent = rootPart
 		
-		-- Velocity controls the movement
-		bodyVelocity = Instance.new("BodyVelocity")
+		bodyVelocity = Instance.new("BodyVelocity", rootPart)
 		bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-		bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-		bodyVelocity.Parent = rootPart
-		
-		-- Make sure the player doesn't trip
-		humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, false)
-		
 	else
-		-- Player wants to stop flying, destroy the physics objects
-		print("Nexa's Fly Script: Flying DISABLED")
+		flyButton.Text = "Fly: OFF"
+		flyButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 		
 		if bodyGyro then bodyGyro:Destroy() end
 		if bodyVelocity then bodyVelocity:Destroy() end
-		bodyGyro = nil
-		bodyVelocity = nil
-		
-		-- Return control to the default character controller
-		humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+		if rootPart.Anchored then rootPart.Anchored = false end -- Ensure we are not left anchored
 	end
 end
 
 -- ==========================================================
--- || EVENTS ||
+-- || EVENT CONNECTIONS ||
 -- ==========================================================
 
--- Listen for key presses
+flyButton.MouseButton1Click:Connect(toggleFly)
+
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-	-- Ignore if the player is typing in chat
 	if gameProcessedEvent then return end
-	
-	-- Toggle flight
-	if input.KeyCode == FLY_KEY then
-		toggleFly()
-	end
-	
-	-- Update movement direction on key press
+	if input.KeyCode == FLY_KEY then toggleFly() end
 	if isFlying and moveKeys[input.KeyCode] then
 		moveDirection = moveDirection + moveKeys[input.KeyCode]
 	end
 end)
 
--- Listen for key releases
 UserInputService.InputEnded:Connect(function(input)
-	-- Update movement direction on key release
 	if isFlying and moveKeys[input.KeyCode] then
 		moveDirection = moveDirection - moveKeys[input.KeyCode]
 	end
 end)
 
--- Main flight loop
-RunService.Heartbeat:Connect(function(deltaTime)
-	if isFlying and bodyVelocity and bodyGyro then
-		-- Update the gyro to keep player oriented with camera
+-- The main loop that handles flight and the anti-rubberband bypass
+RunService.Stepped:Connect(function()
+	if isFlying and bodyGyro and bodyVelocity then
+		local character = player.Character
+		if not character or not character.PrimaryPart then return end
+		
+		local rootPart = character.PrimaryPart
 		local camera = workspace.CurrentCamera
-		if camera then
-			bodyGyro.CFrame = camera.CFrame
-		end
 		
-		-- Calculate the final velocity based on camera direction
-		local relativeDirection = workspace.CurrentCamera.CFrame:VectorToWorldSpace(moveDirection)
+		-- THE BYPASS: This part prevents the server from rubber-banding you back.
+		-- We anchor the character for a single frame, which stops the server physics update from affecting you.
+		rootPart.Anchored = true
+		task.defer(function()
+			if rootPart and rootPart.Parent then -- check if still valid
+				rootPart.Anchored = false
+			end
+		end)
 		
-		if moveDirection.Magnitude > 0 then
-			-- If moving, use the calculated direction
-			bodyVelocity.Velocity = relativeDirection.Unit * FLY_SPEED
-		else
-			-- If not moving, stay perfectly still in the air
+		-- Update flight direction and velocity
+		bodyGyro.CFrame = camera.CFrame
+		local relativeDirection = camera.CFrame:VectorToWorldSpace(moveDirection)
+		bodyVelocity.Velocity = relativeDirection.Unit * FLY_SPEED
+		
+		if moveDirection.Magnitude == 0 then
 			bodyVelocity.Velocity = Vector3.new(0, 0, 0)
 		end
 	end
 end)
+
+-- Handle character spawning and respawning
+player.CharacterAdded:Connect(setupFlight)
+if player.Character then
+	setupFlight(player.Character)
+end
