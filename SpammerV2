@@ -3,6 +3,7 @@
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 -- Create ScreenGui
@@ -398,7 +399,7 @@ CooldownDisplay.InputChanged:Connect(function(input)
 	end
 end)
 
-game:GetService("UserInputService").InputChanged:Connect(function(input)
+UserInputService.InputChanged:Connect(function(input)
 	if input == cdDragInput and cdDragging then
 		local delta = input.Position - cdDragStart
 		CooldownDisplay.Position = UDim2.new(cdStartPos.X.Scale, cdStartPos.X.Offset + delta.X, cdStartPos.Y.Scale, cdStartPos.Y.Offset + delta.Y)
@@ -675,10 +676,7 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 -- Make log frame draggable
-local logDragging = false
-local logDragInput
-local logDragStart
-local logStartPos
+local logDragging =
 
 LogFrame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.User
