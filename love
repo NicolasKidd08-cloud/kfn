@@ -1,15 +1,37 @@
 --[[
-    Nexa Hub v2.0 - Steal a Brainrot (WORKING)
-    Modern Green Theme
-    Game: Steal a Brainrot by SpyderSammy
+    Nexa Hub v2.1 - Steal a Brainrot (FIXED)
+    Modern Green Theme - No Errors Edition
 ]]
+
+-- Wait for game to load
+repeat task.wait() until game:IsLoaded()
+
+-- ============================================================
+-- SAFE FUNCTION CHECKS
+-- ============================================================
+
+local function checkFunction(name)
+    return getgenv()[name] ~= nil or _G[name] ~= nil
+end
+
+-- ============================================================
+-- SERVICES
+-- ============================================================
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- ============================================================
 -- CONFIGURATION
 -- ============================================================
 
-getgenv().NEXA_CONFIG = getgenv().NEXA_CONFIG or {
-    TELEPORT_KEYBIND = Enum.KeyCode.T,
+local CONFIG = {
     TOGGLE_GUI_KEYBIND = Enum.KeyCode.RightControl,
     SPEED_KEYBIND = Enum.KeyCode.G,
     DESYNC_KEYBIND = Enum.KeyCode.X,
@@ -18,27 +40,17 @@ getgenv().NEXA_CONFIG = getgenv().NEXA_CONFIG or {
     AUTO_BUY_BRAINROT = false,
     AUTO_STEAL_ENABLED = false,
     AUTO_DEFEND_BASE = false,
-    AUTO_COLLECT_MONEY = false,
     SPEED_BOOST_ENABLED = false,
     DESYNC_ENABLED = false,
     NO_SLOWDOWN = false,
-    ANTI_STEAL = false,
-    
     ESP_ENABLED = false,
-    ESP_SHOW_BASES = true,
-    ESP_SHOW_PLAYERS = false,
     
     WALK_SPEED = 50,
     AUTO_BUY_DELAY = 0.5,
-    
-    GUI_POSITION_X = nil,
-    GUI_POSITION_Y = nil,
 }
 
-local CONFIG = getgenv().NEXA_CONFIG
-
 -- ============================================================
--- COLORS - MODERN GREEN THEME
+-- COLORS
 -- ============================================================
 
 local COLORS = {
@@ -49,126 +61,66 @@ local COLORS = {
     Green = Color3.fromRGB(0, 255, 157),
     DarkGreen = Color3.fromRGB(0, 180, 110),
     Cyan = Color3.fromRGB(0, 255, 200),
-    Teal = Color3.fromRGB(0, 200, 180),
     Success = Color3.fromRGB(0, 255, 157),
     Warning = Color3.fromRGB(255, 200, 0),
     Error = Color3.fromRGB(255, 80, 100),
 }
 
 -- ============================================================
--- SERVICES
--- ============================================================
-
-local S = {
-    Players = game:GetService("Players"),
-    UIS = game:GetService("UserInputService"),
-    TweenService = game:GetService("TweenService"),
-    RS = game:GetService("ReplicatedStorage"),
-    HttpService = game:GetService("HttpService"),
-    RunService = game:GetService("RunService"),
-    Workspace = game:GetService("Workspace"),
-}
-
-S.LocalPlayer = S.Players.LocalPlayer
-S.PlayerGui = S.LocalPlayer:WaitForChild("PlayerGui")
-
--- ============================================================
 -- GLOBAL STATE
 -- ============================================================
 
-local screenGui, mainFrame, contentFrame
+local screenGui = nil
+local mainFrame = nil
+local contentFrame = nil
 local guiVisible = true
-local statLabels = nil
-local ESP_INSTANCES = {}
 local connections = {}
-
-local stats = {
-    totalMoney = 0,
-    brainrotsOwned = 0,
-    brainrotsStolen = 0,
-}
 
 -- ============================================================
 -- HELPER FUNCTIONS
 -- ============================================================
 
-local tweenInfoFast = TweenInfo.new(0.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
-
 local function tween(obj, props)
-    S.TweenService:Create(obj, tweenInfoFast, props):Play()
+    TweenService:Create(obj, TweenInfo.new(0.2, Enum.EasingStyle.Cubic), props):Play()
 end
 
 local function createElement(class, props)
     local obj = Instance.new(class)
     for k, v in pairs(props) do
-        obj[k] = v
+        if k ~= "Parent" then
+            obj[k] = v
+        end
+    end
+    if props.Parent then
+        obj.Parent = props.Parent
     end
     return obj
-end
-
-local function addGreenGlow(element)
-    local glow = createElement("UIStroke", {
-        Color = COLORS.Green,
-        Thickness = 0,
-        Transparency = 0.5,
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-        Parent = element,
-    })
-    
-    task.spawn(function()
-        while element.Parent and glow.Parent do
-            tween(glow, {Thickness = 2, Transparency = 0.3})
-            task.wait(1.5)
-            tween(glow, {Thickness = 0, Transparency = 0.7})
-            task.wait(1.5)
-        end
-    end)
-    
-    return glow
 end
 
 -- ============================================================
 -- NOTIFICATION SYSTEM
 -- ============================================================
 
-local NOTIFICATIONS = {}
-local MAX_NOTIFS = 5
+local notifications = {}
 
-function showNotification(message, color)
+local function showNotification(message, color)
     if not screenGui then return end
     color = color or COLORS.Green
     
-    if #NOTIFICATIONS >= MAX_NOTIFS then
-        if NOTIFICATIONS[1] and NOTIFICATIONS[1].Parent then
-            NOTIFICATIONS[1]:Destroy()
-        end
-        table.remove(NOTIFICATIONS, 1)
-    end
-    
     local notif = createElement("Frame", {
-        Size = UDim2.new(0, 320, 0, 60),
-        Position = UDim2.new(1, 350, 1, -70 - (#NOTIFICATIONS * 70)),
+        Size = UDim2.new(0, 300, 0, 50),
+        Position = UDim2.new(1, 320, 1, -60 - (#notifications * 60)),
         BackgroundColor3 = COLORS.Surface,
-        BackgroundTransparency = 0.1,
         BorderSizePixel = 0,
         Parent = screenGui,
-        ZIndex = 999999,
     })
     
     createElement("UICorner", {CornerRadius = UDim.new(0, 10), Parent = notif})
-    createElement("UIStroke", {Color = color, Thickness = 2, Transparency = 0.3, Parent = notif})
-    
-    local bar = createElement("Frame", {
-        Size = UDim2.new(0, 4, 1, 0),
-        BackgroundColor3 = color,
-        BorderSizePixel = 0,
-        Parent = notif,
-    })
-    createElement("UICorner", {CornerRadius = UDim.new(1, 0), Parent = bar})
+    createElement("UIStroke", {Color = color, Thickness = 2, Parent = notif})
     
     createElement("TextLabel", {
-        Size = UDim2.new(1, -50, 1, 0),
-        Position = UDim2.new(0, 15, 0, 0),
+        Size = UDim2.new(1, -20, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
         BackgroundTransparency = 1,
         Text = message,
         TextColor3 = COLORS.Text,
@@ -179,56 +131,22 @@ function showNotification(message, color)
         Parent = notif,
     })
     
-    table.insert(NOTIFICATIONS, notif)
-    tween(notif, {Position = UDim2.new(1, -330, 1, -70 - ((#NOTIFICATIONS - 1) * 70))})
+    table.insert(notifications, notif)
+    tween(notif, {Position = UDim2.new(1, -310, 1, -60 - ((#notifications - 1) * 60))})
     
     task.delay(3, function()
-        if notif.Parent then
-            tween(notif, {Position = UDim2.new(1, 350, notif.Position.Y.Scale, notif.Position.Y.Offset)})
-            task.wait(0.5)
+        if notif and notif.Parent then
+            tween(notif, {Position = UDim2.new(1, 320, notif.Position.Y.Scale, notif.Position.Y.Offset)})
+            task.wait(0.3)
             notif:Destroy()
-            for i, n in ipairs(NOTIFICATIONS) do
-                if n == notif then table.remove(NOTIFICATIONS, i) break end
+            for i, n in ipairs(notifications) do
+                if n == notif then 
+                    table.remove(notifications, i) 
+                    break 
+                end
             end
         end
     end)
-end
-
--- ============================================================
--- CONFIG MANAGEMENT
--- ============================================================
-
-local function saveConfig()
-    if not writefile then return end
-    local data = {}
-    for k, v in pairs(CONFIG) do
-        if typeof(v) == "EnumItem" then
-            data[k] = {_enum = true, _type = tostring(v.EnumType), _name = v.Name}
-        else
-            data[k] = v
-        end
-    end
-    local ok, json = pcall(S.HttpService.JSONEncode, S.HttpService, data)
-    if ok then 
-        pcall(function() writefile("NexaBrainrotConfig.json", json) end)
-    end
-end
-
-local function loadConfig()
-    if not isfile or not readfile then return end
-    if not isfile("NexaBrainrotConfig.json") then return end
-    local ok, json = pcall(readfile, "NexaBrainrotConfig.json")
-    if not ok then return end
-    local ok2, data = pcall(S.HttpService.JSONDecode, S.HttpService, json)
-    if ok2 and data then
-        for k, v in pairs(data) do
-            if type(v) == "table" and v._enum and v._type == "KeyCode" then
-                CONFIG[k] = Enum.KeyCode[v._name]
-            else
-                CONFIG[k] = v
-            end
-        end
-    end
 end
 
 -- ============================================================
@@ -236,51 +154,37 @@ end
 -- ============================================================
 
 local function getHRP()
-    local char = S.LocalPlayer.Character
-    if not char then return nil end
-    return char:FindFirstChild("HumanoidRootPart")
+    if not LocalPlayer.Character then return nil end
+    return LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 end
 
 local function getMyBase()
-    local bases = S.Workspace:FindFirstChild("Bases")
+    local bases = Workspace:FindFirstChild("Bases")
     if not bases then return nil end
-    return bases:FindFirstChild(S.LocalPlayer.Name)
-end
-
-local function findConveyor()
-    return S.Workspace:FindFirstChild("Conveyor") or S.Workspace:FindFirstChild("ConveyorBelt")
+    return bases:FindFirstChild(LocalPlayer.Name)
 end
 
 -- ============================================================
--- DESYNC SYSTEM
+-- DESYNC
 -- ============================================================
 
 local function enableDesync()
-    if setfflag then
-        pcall(function() setfflag("LargeReplicatorEnabled9", "true") end)
-        pcall(function() setfflag("GameNetDontSendRedundantNumTimes", "1") end)
-        pcall(function() setfflag("MaxTimestepMultiplierAcceleration", "2147483647") end)
+    if connections.desync then 
+        connections.desync:Disconnect() 
     end
     
-    if connections.desync then connections.desync:Disconnect() end
-    
-    connections.desync = S.RunService.Heartbeat:Connect(function()
+    connections.desync = RunService.Heartbeat:Connect(function()
         if not CONFIG.DESYNC_ENABLED then return end
         local hrp = getHRP()
         if hrp then
             pcall(function()
-                hrp.Velocity = Vector3.new(0, 0, 0)
-                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                hrp.Velocity = Vector3.zero
+                hrp.AssemblyLinearVelocity = Vector3.zero
             end)
         end
     end)
     
-    showNotification("✓ Desync V3 Enabled", COLORS.Success)
-end
-
-local function disableDesync()
-    if connections.desync then connections.desync:Disconnect() end
-    showNotification("✗ Desync Disabled", COLORS.Warning)
+    showNotification("✓ Desync Enabled", COLORS.Success)
 end
 
 -- ============================================================
@@ -288,16 +192,18 @@ end
 -- ============================================================
 
 local function enableSpeedBoost()
-    if connections.speed then connections.speed:Disconnect() end
+    if connections.speed then 
+        connections.speed:Disconnect() 
+    end
     
-    connections.speed = S.RunService.Heartbeat:Connect(function()
+    connections.speed = RunService.Heartbeat:Connect(function()
         if not CONFIG.SPEED_BOOST_ENABLED then return end
         
-        local char = S.LocalPlayer.Character
-        if not char then return end
-        local humanoid = char:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = CONFIG.WALK_SPEED
+        if LocalPlayer.Character then
+            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = CONFIG.WALK_SPEED
+            end
         end
     end)
 end
@@ -307,40 +213,39 @@ end
 -- ============================================================
 
 local function enableNoSlowdown()
-    if connections.noSlow then connections.noSlow:Disconnect() end
+    if connections.noSlow then 
+        connections.noSlow:Disconnect() 
+    end
     
-    connections.noSlow = S.RunService.Heartbeat:Connect(function()
+    connections.noSlow = RunService.Heartbeat:Connect(function()
         if not CONFIG.NO_SLOWDOWN then return end
         
-        local char = S.LocalPlayer.Character
-        if not char then return end
-        
-        -- Remove any "Stolen" or slowdown effects
-        for _, v in ipairs(char:GetDescendants()) do
-            if v:IsA("BodyVelocity") or v:IsA("BodyPosition") then
-                v:Destroy()
+        if LocalPlayer.Character then
+            for _, v in ipairs(LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BodyVelocity") or v:IsA("BodyPosition") then
+                    pcall(function() v:Destroy() end)
+                end
             end
         end
     end)
 end
 
 -- ============================================================
--- AUTO BUY BRAINROT
+-- AUTO BUY
 -- ============================================================
 
 local function autoBuyBrainrot()
     task.spawn(function()
-        while task.wait(CONFIG.AUTO_BUY_DELAY) do
-            if not CONFIG.AUTO_BUY_BRAINROT then break end
+        while CONFIG.AUTO_BUY_BRAINROT do
+            task.wait(CONFIG.AUTO_BUY_DELAY)
             
             pcall(function()
-                local conveyor = findConveyor()
-                if conveyor then
-                    local button = conveyor:FindFirstChild("Button") or conveyor:FindFirstChild("BuyButton")
-                    if button then
-                        local clickDetector = button:FindFirstChildOfClass("ClickDetector")
-                        if clickDetector and fireclickdetector then
-                            fireclickdetector(clickDetector)
+                local conveyor = Workspace:FindFirstChild("Conveyor") or Workspace:FindFirstChild("ConveyorBelt")
+                if conveyor and checkFunction("fireclickdetector") then
+                    for _, v in ipairs(conveyor:GetDescendants()) do
+                        if v:IsA("ClickDetector") then
+                            fireclickdetector(v)
+                            break
                         end
                     end
                 end
@@ -350,23 +255,22 @@ local function autoBuyBrainrot()
 end
 
 -- ============================================================
--- AUTO DEFEND BASE
+-- AUTO DEFEND
 -- ============================================================
 
 local function autoDefendBase()
     task.spawn(function()
-        while task.wait(59) do
-            if not CONFIG.AUTO_DEFEND_BASE then break end
+        while CONFIG.AUTO_DEFEND_BASE do
+            task.wait(59)
             
             pcall(function()
                 local myBase = getMyBase()
-                if myBase then
-                    local lockButton = myBase:FindFirstChild("LockButton") or myBase:FindFirstChild("Button")
-                    if lockButton then
-                        local clickDetector = lockButton:FindFirstChildOfClass("ClickDetector")
-                        if clickDetector and fireclickdetector then
-                            fireclickdetector(clickDetector)
+                if myBase and checkFunction("fireclickdetector") then
+                    for _, v in ipairs(myBase:GetDescendants()) do
+                        if v:IsA("ClickDetector") then
+                            fireclickdetector(v)
                             showNotification("🛡️ Base Locked", COLORS.Success)
+                            break
                         end
                     end
                 end
@@ -381,33 +285,34 @@ end
 
 local function autoSteal()
     task.spawn(function()
-        while task.wait(0.1) do
-            if not CONFIG.AUTO_STEAL_ENABLED then break end
+        while CONFIG.AUTO_STEAL_ENABLED do
+            task.wait(1)
             
             pcall(function()
                 local hrp = getHRP()
                 if not hrp then return end
                 
-                local bases = S.Workspace:FindFirstChild("Bases")
+                local bases = Workspace:FindFirstChild("Bases")
                 if not bases then return end
                 
                 for _, base in ipairs(bases:GetChildren()) do
-                    if base.Name ~= S.LocalPlayer.Name then
+                    if base.Name ~= LocalPlayer.Name then
                         for _, brainrot in ipairs(base:GetDescendants()) do
                             if brainrot:IsA("Model") and brainrot:FindFirstChild("Humanoid") then
-                                local prompt = brainrot:FindFirstChildOfClass("ProximityPrompt", true)
-                                if prompt and prompt.Enabled and fireproximityprompt then
-                                    hrp.CFrame = brainrot:GetPivot()
-                                    task.wait(0.1)
-                                    fireproximityprompt(prompt)
-                                    task.wait(0.5)
-                                    
-                                    -- TP back to your base
-                                    local myBase = getMyBase()
-                                    if myBase then
-                                        hrp.CFrame = myBase:GetPivot() + Vector3.new(0, 5, 0)
+                                if checkFunction("fireproximityprompt") then
+                                    local prompt = brainrot:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        hrp.CFrame = brainrot:GetPivot()
+                                        task.wait(0.2)
+                                        fireproximityprompt(prompt)
+                                        task.wait(0.5)
+                                        
+                                        local myBase = getMyBase()
+                                        if myBase then
+                                            hrp.CFrame = myBase:GetPivot() + Vector3.new(0, 5, 0)
+                                        end
+                                        break
                                     end
-                                    break
                                 end
                             end
                         end
@@ -419,51 +324,13 @@ local function autoSteal()
 end
 
 -- ============================================================
--- ESP SYSTEM
--- ============================================================
-
-local function clearAllESP()
-    for _, rec in pairs(ESP_INSTANCES) do
-        if rec.highlight then pcall(function() rec.highlight:Destroy() end) end
-        if rec.billboard then pcall(function() rec.billboard:Destroy() end) end
-    end
-    ESP_INSTANCES = {}
-end
-
-local function refreshESP()
-    clearAllESP()
-    
-    if not CONFIG.ESP_ENABLED or not screenGui then return end
-    
-    if CONFIG.ESP_SHOW_BASES then
-        local bases = S.Workspace:FindFirstChild("Bases")
-        if bases then
-            for _, base in ipairs(bases:GetChildren()) do
-                if base.Name ~= S.LocalPlayer.Name and base:IsA("Model") then
-                    local highlight = Instance.new("Highlight")
-                    highlight.Adornee = base
-                    highlight.FillColor = COLORS.Green
-                    highlight.FillTransparency = 0.7
-                    highlight.OutlineColor = COLORS.Cyan
-                    highlight.OutlineTransparency = 0.3
-                    highlight.Parent = screenGui
-                    
-                    ESP_INSTANCES[base.Name] = {highlight = highlight}
-                end
-            end
-        end
-    end
-end
-
--- ============================================================
 -- GUI CREATION
 -- ============================================================
 
 local function createToggle(parent, text, configKey, callback, order)
     local container = createElement("Frame", {
-        Size = UDim2.new(1, -20, 0, 42),
+        Size = UDim2.new(1, -20, 0, 40),
         BackgroundColor3 = COLORS.Surface,
-        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         LayoutOrder = order,
         Parent = parent,
@@ -473,7 +340,7 @@ local function createToggle(parent, text, configKey, callback, order)
     
     createElement("TextLabel", {
         Size = UDim2.new(0.6, 0, 1, 0),
-        Position = UDim2.new(0, 12, 0, 0),
+        Position = UDim2.new(0, 10, 0, 0),
         BackgroundTransparency = 1,
         Text = text,
         TextColor3 = COLORS.Text,
@@ -489,7 +356,6 @@ local function createToggle(parent, text, configKey, callback, order)
         Size = UDim2.new(0, 44, 0, 22),
         Position = UDim2.new(1, -52, 0.5, -11),
         BackgroundColor3 = isEnabled and COLORS.Green or Color3.fromRGB(40, 45, 42),
-        BackgroundTransparency = 0.2,
         BorderSizePixel = 0,
         Parent = container,
     })
@@ -521,17 +387,13 @@ local function createToggle(parent, text, configKey, callback, order)
         tween(knob, {Position = isEnabled and UDim2.new(0, 24, 0.5, -9) or UDim2.new(0, 2, 0.5, -9)})
         
         if callback then callback(isEnabled) end
-        saveConfig()
     end)
-    
-    return container
 end
 
 local function createButton(parent, text, color, callback, order)
     local btn = createElement("TextButton", {
-        Size = UDim2.new(1, -20, 0, 38),
+        Size = UDim2.new(1, -20, 0, 36),
         BackgroundColor3 = color,
-        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         LayoutOrder = order,
         Text = text,
@@ -551,60 +413,56 @@ local function createGui()
     screenGui = createElement("ScreenGui", {
         Name = "NexaBrainrotHub",
         ResetOnSpawn = false,
-        DisplayOrder = 999999,
-        ZIndexBehavior = Enum.ZIndexBehavior.Global,
-        Parent = S.PlayerGui,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        Parent = PlayerGui,
     })
     
     mainFrame = createElement("Frame", {
-        Size = UDim2.new(0, 400, 0, 550),
-        Position = CONFIG.GUI_POSITION_X and UDim2.new(0, CONFIG.GUI_POSITION_X, 0, CONFIG.GUI_POSITION_Y) or UDim2.new(0.5, -200, 0.5, -275),
+        Size = UDim2.new(0, 380, 0, 480),
+        Position = UDim2.new(0.5, -190, 0.5, -240),
         BackgroundColor3 = COLORS.Background,
-        BackgroundTransparency = 0.15,
         BorderSizePixel = 0,
         Parent = screenGui,
     })
     
     createElement("UICorner", {CornerRadius = UDim.new(0, 12), Parent = mainFrame})
-    addGreenGlow(mainFrame)
     
     local titleBar = createElement("Frame", {
-        Size = UDim2.new(1, 0, 0, 50),
+        Size = UDim2.new(1, 0, 0, 45),
         BackgroundTransparency = 1,
         Parent = mainFrame,
     })
     
     createElement("TextLabel", {
-        Size = UDim2.new(1, -60, 0, 22),
-        Position = UDim2.new(0, 15, 0, 10),
+        Size = UDim2.new(1, -20, 0, 20),
+        Position = UDim2.new(0, 10, 0, 8),
         BackgroundTransparency = 1,
         Text = "NEXA HUB",
         TextColor3 = COLORS.Green,
-        TextSize = 18,
+        TextSize = 16,
         Font = Enum.Font.GothamBlack,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = titleBar,
     })
     
     createElement("TextLabel", {
-        Size = UDim2.new(1, -60, 0, 14),
-        Position = UDim2.new(0, 15, 0, 32),
+        Size = UDim2.new(1, -20, 0, 12),
+        Position = UDim2.new(0, 10, 0, 28),
         BackgroundTransparency = 1,
-        Text = "Steal a Brainrot v2.0 • WORKING",
+        Text = "Steal a Brainrot v2.1",
         TextColor3 = COLORS.TextDim,
-        TextSize = 11,
+        TextSize = 10,
         Font = Enum.Font.Gotham,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = titleBar,
     })
     
     contentFrame = createElement("ScrollingFrame", {
-        Size = UDim2.new(1, -20, 1, -60),
-        Position = UDim2.new(0, 10, 0, 55),
+        Size = UDim2.new(1, -20, 1, -55),
+        Position = UDim2.new(0, 10, 0, 50),
         BackgroundColor3 = COLORS.Surface,
-        BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
-        ScrollBarThickness = 6,
+        ScrollBarThickness = 4,
         ScrollBarImageColor3 = COLORS.Green,
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
         Parent = mainFrame,
@@ -612,17 +470,17 @@ local function createGui()
     
     createElement("UICorner", {CornerRadius = UDim.new(0, 10), Parent = contentFrame})
     
-    createElement("UIListLayout", {
-        Padding = UDim.new(0, 8),
+    local layout = createElement("UIListLayout", {
+        Padding = UDim.new(0, 6),
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = contentFrame,
     })
     
     createElement("UIPadding", {
-        PaddingTop = UDim.new(0, 10),
-        PaddingBottom = UDim.new(0, 10),
-        PaddingLeft = UDim.new(0, 10),
-        PaddingRight = UDim.new(0, 10),
+        PaddingTop = UDim.new(0, 8),
+        PaddingBottom = UDim.new(0, 8),
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
         Parent = contentFrame,
     })
     
@@ -633,147 +491,40 @@ local function createGui()
     end
     
     local function section(text)
-        local s = createElement("Frame", {
-            Size = UDim2.new(1, -20, 0, 28),
-            BackgroundTransparency = 1,
-            LayoutOrder = next(),
-            Parent = contentFrame,
-        })
-        
-        createElement("TextLabel", {
-            Size = UDim2.new(1, 0, 1, 0),
+        local s = createElement("TextLabel", {
+            Size = UDim2.new(1, -16, 0, 24),
             BackgroundTransparency = 1,
             Text = text,
             TextColor3 = COLORS.Green,
-            TextSize = 15,
+            TextSize = 14,
             Font = Enum.Font.GothamBold,
             TextXAlignment = Enum.TextXAlignment.Left,
-            Parent = s,
+            LayoutOrder = next(),
+            Parent = contentFrame,
         })
     end
     
     section("🎯 AUTO FEATURES")
-    createToggle(contentFrame, "Auto-Buy Brainrot", "AUTO_BUY_BRAINROT", function(v)
-        if v then autoBuyBrainrot() end
-    end, next())
-    createToggle(contentFrame, "Auto-Steal", "AUTO_STEAL_ENABLED", function(v)
-        if v then autoSteal() end
-    end, next())
-    createToggle(contentFrame, "Auto-Defend Base", "AUTO_DEFEND_BASE", function(v)
-        if v then autoDefendBase() end
-    end, next())
+    createToggle(contentFrame, "Auto-Buy Brainrot", "AUTO_BUY_BRAINROT", function(v) if v then autoBuyBrainrot() end end, next())
+    createToggle(contentFrame, "Auto-Steal", "AUTO_STEAL_ENABLED", function(v) if v then autoSteal() end end, next())
+    createToggle(contentFrame, "Auto-Defend Base", "AUTO_DEFEND_BASE", function(v) if v then autoDefendBase() end end, next())
     
-    section("⚡ MOVEMENT & PROTECTION")
-    createToggle(contentFrame, "Speed Boost", "SPEED_BOOST_ENABLED", function(v)
-        if v then enableSpeedBoost() end
-    end, next())
-    createToggle(contentFrame, "Desync V3", "DESYNC_ENABLED", function(v)
-        if v then enableDesync() else disableDesync() end
-    end, next())
-    createToggle(contentFrame, "No Slowdown", "NO_SLOWDOWN", function(v)
-        if v then enableNoSlowdown() end
-    end, next())
-    
-    section("👁️ ESP")
-    createToggle(contentFrame, "Base ESP", "ESP_ENABLED", refreshESP, next())
+    section("⚡ MOVEMENT")
+    createToggle(contentFrame, "Speed Boost", "SPEED_BOOST_ENABLED", function(v) if v then enableSpeedBoost() end end, next())
+    createToggle(contentFrame, "Desync", "DESYNC_ENABLED", function(v) if v then enableDesync() end end, next())
+    createToggle(contentFrame, "No Slowdown", "NO_SLOWDOWN", function(v) if v then enableNoSlowdown() end end, next())
     
     section("⚙️ QUICK ACTIONS")
-    createButton(contentFrame, "TP to Conveyor", COLORS.Green, function()
-        local hrp = getHRP()
-        local conveyor = findConveyor()
-        if hrp and conveyor then
-            hrp.CFrame = conveyor:GetPivot() + Vector3.new(0, 5, 0)
-            showNotification("🚀 Teleported to Conveyor", COLORS.Success)
-        end
-    end, next())
-    
     createButton(contentFrame, "TP to My Base", COLORS.Cyan, function()
         local hrp = getHRP()
         local myBase = getMyBase()
         if hrp and myBase then
             hrp.CFrame = myBase:GetPivot() + Vector3.new(0, 5, 0)
-            showNotification("🏠 Teleported to Base", COLORS.Success)
+            showNotification("🏠 Teleported Home", COLORS.Success)
         end
     end, next())
     
-    section("⌨️ KEYBINDS")
-    
-    local function createKeybindButton(parent, text, configKey, order)
-        local container = createElement("Frame", {
-            Size = UDim2.new(1, -20, 0, 42),
-            BackgroundColor3 = COLORS.Surface,
-            BackgroundTransparency = 0.3,
-            BorderSizePixel = 0,
-            LayoutOrder = order,
-            Parent = parent,
-        })
-        
-        createElement("UICorner", {CornerRadius = UDim.new(0, 8), Parent = container})
-        
-        createElement("TextLabel", {
-            Size = UDim2.new(0.5, 0, 1, 0),
-            Position = UDim2.new(0, 12, 0, 0),
-            BackgroundTransparency = 1,
-            Text = text,
-            TextColor3 = COLORS.Text,
-            TextSize = 13,
-            Font = Enum.Font.GothamSemibold,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Parent = container,
-        })
-        
-        local keyLabel = createElement("TextLabel", {
-            Size = UDim2.new(0, 80, 0, 26),
-            Position = UDim2.new(1, -88, 0.5, -13),
-            BackgroundColor3 = COLORS.Green,
-            BackgroundTransparency = 0.3,
-            BorderSizePixel = 0,
-            Text = CONFIG[configKey].Name,
-            TextColor3 = COLORS.Text,
-            TextSize = 12,
-            Font = Enum.Font.GothamBold,
-            Parent = container,
-        })
-        
-        createElement("UICorner", {CornerRadius = UDim.new(0, 6), Parent = keyLabel})
-        
-        local btn = createElement("TextButton", {
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundTransparency = 1,
-            Text = "",
-            Parent = container,
-        })
-        
-        local listening = false
-        
-        btn.MouseButton1Click:Connect(function()
-            if listening then return end
-            listening = true
-            keyLabel.Text = "..."
-            keyLabel.BackgroundColor3 = COLORS.Cyan
-            
-            local conn
-            conn = S.UIS.InputBegan:Connect(function(input, gpe)
-                if gpe then return end
-                if input.UserInputType == Enum.UserInputType.Keyboard then
-                    CONFIG[configKey] = input.KeyCode
-                    keyLabel.Text = input.KeyCode.Name
-                    keyLabel.BackgroundColor3 = COLORS.Green
-                    listening = false
-                    saveConfig()
-                    conn:Disconnect()
-                    showNotification("✓ Keybind set: " .. input.KeyCode.Name, COLORS.Success)
-                end
-            end)
-        end)
-    end
-    
-    createKeybindButton(contentFrame, "Toggle GUI", "TOGGLE_GUI_KEYBIND", next())
-    createKeybindButton(contentFrame, "Toggle Speed", "SPEED_KEYBIND", next())
-    createKeybindButton(contentFrame, "Toggle Desync", "DESYNC_KEYBIND", next())
-    createKeybindButton(contentFrame, "Toggle Auto-Farm", "AUTO_FARM_KEYBIND", next())
-    
-    -- Dragging
+    -- Make draggable
     local dragging, dragStart, startPos
     
     titleBar.InputBegan:Connect(function(input)
@@ -787,13 +538,10 @@ local function createGui()
     titleBar.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
-            CONFIG.GUI_POSITION_X = mainFrame.AbsolutePosition.X
-            CONFIG.GUI_POSITION_Y = mainFrame.AbsolutePosition.Y
-            saveConfig()
         end
     end)
     
-    S.UIS.InputChanged:Connect(function(input)
+    UIS.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
             mainFrame.Position = UDim2.new(
@@ -817,7 +565,7 @@ end
 -- KEYBINDS
 -- ============================================================
 
-S.UIS.InputBegan:Connect(function(input, gpe)
+UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     
     if input.KeyCode == CONFIG.TOGGLE_GUI_KEYBIND then
@@ -825,16 +573,14 @@ S.UIS.InputBegan:Connect(function(input, gpe)
     elseif input.KeyCode == CONFIG.SPEED_KEYBIND then
         CONFIG.SPEED_BOOST_ENABLED = not CONFIG.SPEED_BOOST_ENABLED
         if CONFIG.SPEED_BOOST_ENABLED then enableSpeedBoost() end
-        saveConfig()
         showNotification(CONFIG.SPEED_BOOST_ENABLED and "✓ Speed ON" or "✗ Speed OFF", COLORS.Green)
     elseif input.KeyCode == CONFIG.DESYNC_KEYBIND then
         CONFIG.DESYNC_ENABLED = not CONFIG.DESYNC_ENABLED
-        if CONFIG.DESYNC_ENABLED then enableDesync() else disableDesync() end
-        saveConfig()
+        if CONFIG.DESYNC_ENABLED then enableDesync() end
+        showNotification(CONFIG.DESYNC_ENABLED and "✓ Desync ON" or "✗ Desync OFF", COLORS.Green)
     elseif input.KeyCode == CONFIG.AUTO_FARM_KEYBIND then
         CONFIG.AUTO_BUY_BRAINROT = not CONFIG.AUTO_BUY_BRAINROT
         if CONFIG.AUTO_BUY_BRAINROT then autoBuyBrainrot() end
-        saveConfig()
         showNotification(CONFIG.AUTO_BUY_BRAINROT and "✓ Auto-Farm ON" or "✗ Auto-Farm OFF", COLORS.Green)
     end
 end)
@@ -843,21 +589,20 @@ end)
 -- INITIALIZATION
 -- ============================================================
 
-pcall(loadConfig)
+task.wait(0.5)
 
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
-
-task.spawn(function()
-    task.wait(1)
+local success, err = pcall(function()
     createGui()
     enableSpeedBoost()
     enableNoSlowdown()
-    refreshESP()
     
+    task.wait(0.5)
     showNotification("✓ Nexa Hub Loaded!", COLORS.Success)
-    showNotification("Press RightCtrl to toggle GUI", COLORS.Cyan)
+    showNotification("Press RightCtrl to toggle", COLORS.Cyan)
 end)
 
-print("✓ Nexa Hub v2.0 - Steal a Brainrot (WORKING)")
+if not success then
+    warn("Nexa Hub Error:", err)
+end
+
+print("✓ Nexa Hub v2.1 Loaded")
