@@ -93,54 +93,17 @@ ContentFrame.Position = UDim2.new(0, 0, 0, 45)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
--- Toggle buttons frame
-local ToggleFrame = Instance.new("Frame")
-ToggleFrame.Name = "ToggleFrame"
-ToggleFrame.Size = UDim2.new(1, -20, 0, 45)
-ToggleFrame.Position = UDim2.new(0, 10, 0, 5)
-ToggleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-ToggleFrame.BorderSizePixel = 0
-ToggleFrame.Parent = ContentFrame
-
-local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(0, 8)
-ToggleCorner.Parent = ToggleFrame
-
+-- Toggle buttons frame - REMOVED, now using settings menu
 -- Toggle states
 local espEnabled = true
 local jailInverseMode = false
 local rocketBalloonMode = false
 local cooldownEnabled = false
 
--- Function to create toggle button
-local function createToggleButton(name, position, toggleVar)
-	local Button = Instance.new("TextButton")
-	Button.Name = name
-	Button.Size = UDim2.new(0, 75, 0, 30)
-	Button.Position = position
-	Button.BackgroundColor3 = toggleVar and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
-	Button.Text = name
-	Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Button.TextSize = 11
-	Button.Font = Enum.Font.GothamBold
-	Button.Parent = ToggleFrame
-	
-	local BtnCorner = Instance.new("UICorner")
-	BtnCorner.CornerRadius = UDim.new(0, 6)
-	BtnCorner.Parent = Button
-	
-	return Button
-end
-
-local ESPButton = createToggleButton("ESP", UDim2.new(0, 5, 0.5, -15), espEnabled)
-local JailButton = createToggleButton("Jail+Inv", UDim2.new(0, 85, 0.5, -15), jailInverseMode)
-local RocketButton = createToggleButton("Rkt+Bal", UDim2.new(0, 165, 0.5, -15), rocketBalloonMode)
-local CooldownButton = createToggleButton("CD", UDim2.new(0, 245, 0.5, -15), false)
-
 -- Instructions
 local Instructions = Instance.new("TextLabel")
 Instructions.Size = UDim2.new(1, -30, 0, 30)
-Instructions.Position = UDim2.new(0, 15, 0, 55)
+Instructions.Position = UDim2.new(0, 15, 0, 5)
 Instructions.BackgroundTransparency = 1
 Instructions.Text = "Click any player to spam commands!"
 Instructions.TextColor3 = Color3.fromRGB(200, 200, 255)
@@ -149,11 +112,170 @@ Instructions.Font = Enum.Font.Gotham
 Instructions.TextWrapped = true
 Instructions.Parent = ContentFrame
 
+-- Settings Button at bottom
+local SettingsButton = Instance.new("TextButton")
+SettingsButton.Name = "SettingsButton"
+SettingsButton.Size = UDim2.new(1, -30, 0, 35)
+SettingsButton.Position = UDim2.new(0, 15, 1, -40)
+SettingsButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+SettingsButton.BorderSizePixel = 0
+SettingsButton.Text = "⚙️ Settings"
+SettingsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SettingsButton.TextSize = 14
+SettingsButton.Font = Enum.Font.GothamBold
+SettingsButton.Parent = ContentFrame
+
+local SettingsBtnCorner = Instance.new("UICorner")
+SettingsBtnCorner.CornerRadius = UDim.new(0, 8)
+SettingsBtnCorner.Parent = SettingsButton
+
+-- Settings Menu Frame
+local SettingsMenu = Instance.new("Frame")
+SettingsMenu.Name = "SettingsMenu"
+SettingsMenu.Size = UDim2.new(0, 320, 0, 350)
+SettingsMenu.Position = UDim2.new(0.5, -160, 0.5, -175)
+SettingsMenu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+SettingsMenu.BorderSizePixel = 0
+SettingsMenu.Visible = false
+SettingsMenu.Parent = ScreenGui
+
+local SettingsCorner = Instance.new("UICorner")
+SettingsCorner.CornerRadius = UDim.new(0, 12)
+SettingsCorner.Parent = SettingsMenu
+
+local SettingsGradient = Instance.new("UIGradient")
+SettingsGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 40)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 25))
+}
+SettingsGradient.Rotation = 45
+SettingsGradient.Parent = SettingsMenu
+
+-- Settings Title Bar
+local SettingsTitleBar = Instance.new("Frame")
+SettingsTitleBar.Name = "SettingsTitleBar"
+SettingsTitleBar.Size = UDim2.new(1, 0, 0, 45)
+SettingsTitleBar.BackgroundColor3 = Color3.fromRGB(120, 40, 200)
+SettingsTitleBar.BorderSizePixel = 0
+SettingsTitleBar.Parent = SettingsMenu
+
+local SettingsTitleCorner = Instance.new("UICorner")
+SettingsTitleCorner.CornerRadius = UDim.new(0, 12)
+SettingsTitleCorner.Parent = SettingsTitleBar
+
+local SettingsTitleGradient = Instance.new("UIGradient")
+SettingsTitleGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(140, 60, 220)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 30, 180))
+}
+SettingsTitleGradient.Rotation = 90
+SettingsTitleGradient.Parent = SettingsTitleBar
+
+local SettingsTitle = Instance.new("TextLabel")
+SettingsTitle.Size = UDim2.new(1, -50, 1, 0)
+SettingsTitle.Position = UDim2.new(0, 15, 0, 0)
+SettingsTitle.BackgroundTransparency = 1
+SettingsTitle.Text = "⚙️ SETTINGS"
+SettingsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+SettingsTitle.TextSize = 20
+SettingsTitle.Font = Enum.Font.GothamBold
+SettingsTitle.TextXAlignment = Enum.TextXAlignment.Left
+SettingsTitle.Parent = SettingsTitleBar
+
+local SettingsCloseButton = Instance.new("TextButton")
+SettingsCloseButton.Size = UDim2.new(0, 35, 0, 35)
+SettingsCloseButton.Position = UDim2.new(1, -40, 0, 5)
+SettingsCloseButton.BackgroundColor3 = Color3.fromRGB(220, 50, 80)
+SettingsCloseButton.Text = "×"
+SettingsCloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SettingsCloseButton.TextSize = 22
+SettingsCloseButton.Font = Enum.Font.GothamBold
+SettingsCloseButton.Parent = SettingsTitleBar
+
+local SettingsCloseCorner = Instance.new("UICorner")
+SettingsCloseCorner.CornerRadius = UDim.new(0, 8)
+SettingsCloseCorner.Parent = SettingsCloseButton
+
+-- Settings Content
+local SettingsContent = Instance.new("Frame")
+SettingsContent.Size = UDim2.new(1, -30, 1, -60)
+SettingsContent.Position = UDim2.new(0, 15, 0, 50)
+SettingsContent.BackgroundTransparency = 1
+SettingsContent.Parent = SettingsMenu
+
+-- Function to create setting toggle
+local function createSettingToggle(name, yPos, icon, toggleVar, description)
+	local SettingFrame = Instance.new("Frame")
+	SettingFrame.Name = name .. "Setting"
+	SettingFrame.Size = UDim2.new(1, 0, 0, 65)
+	SettingFrame.Position = UDim2.new(0, 0, 0, yPos)
+	SettingFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+	SettingFrame.BorderSizePixel = 0
+	SettingFrame.Parent = SettingsContent
+	
+	local FrameCorner = Instance.new("UICorner")
+	FrameCorner.CornerRadius = UDim.new(0, 8)
+	FrameCorner.Parent = SettingFrame
+	
+	local IconLabel = Instance.new("TextLabel")
+	IconLabel.Size = UDim2.new(0, 40, 0, 40)
+	IconLabel.Position = UDim2.new(0, 10, 0, 12)
+	IconLabel.BackgroundTransparency = 1
+	IconLabel.Text = icon
+	IconLabel.TextSize = 24
+	IconLabel.Font = Enum.Font.GothamBold
+	IconLabel.Parent = SettingFrame
+	
+	local NameLabel = Instance.new("TextLabel")
+	NameLabel.Size = UDim2.new(1, -140, 0, 20)
+	NameLabel.Position = UDim2.new(0, 55, 0, 10)
+	NameLabel.BackgroundTransparency = 1
+	NameLabel.Text = name
+	NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	NameLabel.TextSize = 14
+	NameLabel.Font = Enum.Font.GothamBold
+	NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	NameLabel.Parent = SettingFrame
+	
+	local DescLabel = Instance.new("TextLabel")
+	DescLabel.Size = UDim2.new(1, -140, 0, 30)
+	DescLabel.Position = UDim2.new(0, 55, 0, 32)
+	DescLabel.BackgroundTransparency = 1
+	DescLabel.Text = description
+	DescLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+	DescLabel.TextSize = 11
+	DescLabel.Font = Enum.Font.Gotham
+	DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+	DescLabel.TextWrapped = true
+	DescLabel.Parent = SettingFrame
+	
+	local ToggleButton = Instance.new("TextButton")
+	ToggleButton.Size = UDim2.new(0, 60, 0, 30)
+	ToggleButton.Position = UDim2.new(1, -70, 0.5, -15)
+	ToggleButton.BackgroundColor3 = toggleVar and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+	ToggleButton.Text = toggleVar and "ON" or "OFF"
+	ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	ToggleButton.TextSize = 12
+	ToggleButton.Font = Enum.Font.GothamBold
+	ToggleButton.Parent = SettingFrame
+	
+	local ToggleCorner = Instance.new("UICorner")
+	ToggleCorner.CornerRadius = UDim.new(0, 6)
+	ToggleCorner.Parent = ToggleButton
+	
+	return ToggleButton, IconLabel
+end
+
+local ESPButton, ESPIcon = createSettingToggle("ESP", 0, "👁️", espEnabled, "Show NEXA tags above users")
+local JailButton = createSettingToggle("Jail + Inverse", 75, "🔒", jailInverseMode, "Faster jail & inverse spam")
+local RocketButton = createSettingToggle("Rocket + Balloon", 150, "🚀", rocketBalloonMode, "Faster rocket & balloon spam")
+local CooldownButton = createSettingToggle("Cooldowns", 225, "⏱️", cooldownEnabled, "Show command cooldown timers")
+
 -- Player List Frame
 local PlayerListFrame = Instance.new("ScrollingFrame")
 PlayerListFrame.Name = "PlayerListFrame"
-PlayerListFrame.Size = UDim2.new(1, -30, 1, -100)
-PlayerListFrame.Position = UDim2.new(0, 15, 0, 90)
+PlayerListFrame.Size = UDim2.new(1, -30, 1, -85)
+PlayerListFrame.Position = UDim2.new(0, 15, 0, 40)
 PlayerListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 PlayerListFrame.BorderSizePixel = 0
 PlayerListFrame.ScrollBarThickness = 8
@@ -739,37 +861,83 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 -- Close button functionality
+local isMinimized = false
 CloseButton.MouseButton1Click:Connect(function()
-	MainFrame.Visible = not MainFrame.Visible
-	CloseButton.Text = MainFrame.Visible and "−" or "+"
+	isMinimized = not isMinimized
+	
+	-- Hide/show all frames except the title bar
+	ContentFrame.Visible = not isMinimized
+	LogFrame.Visible = not isMinimized
+	CooldownDisplay.Visible = not isMinimized and cooldownEnabled
+	
+	CloseButton.Text = isMinimized and "+" or "−"
+	
+	-- Animate the main frame size to just show title bar
+	TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+		Size = isMinimized and UDim2.new(0, 350, 0, 45) or UDim2.new(0, 350, 0, 400)
+	}):Play()
 end)
 
--- Toggle button functionality
-CooldownButton.MouseButton1Click:Connect(function()
-	cooldownEnabled = not cooldownEnabled
-	CooldownDisplay.Visible = cooldownEnabled
-	CooldownButton.BackgroundColor3 = cooldownEnabled and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+-- Settings button click handler
+SettingsButton.MouseButton1Click:Connect(function()
+	SettingsMenu.Visible = not SettingsMenu.Visible
 end)
 
-ESPButton.MouseButton1Click:Connect(function()
-	espEnabled = not espEnabled
-	ESPButton.BackgroundColor3 = espEnabled and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+SettingsCloseButton.MouseButton1Click:Connect(function()
+	SettingsMenu.Visible = false
 end)
 
-JailButton.MouseButton1Click:Connect(function()
-	jailInverseMode = not jailInverseMode
-	JailButton.BackgroundColor3 = jailInverseMode and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+-- Make settings menu draggable
+local settingsDragging = false
+local settingsDragInput
+local settingsDragStart
+local settingsStartPos
+
+SettingsTitleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		settingsDragging = true
+		settingsDragStart = input.Position
+		settingsStartPos = SettingsMenu.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				settingsDragging = false
+			end
+		end)
+	end
 end)
 
-RocketButton.MouseButton1Click:Connect(function()
-	rocketBalloonMode = not rocketBalloonMode
-	RocketButton.BackgroundColor3 = rocketBalloonMode and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+SettingsTitleBar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		settingsDragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == settingsDragInput and settingsDragging then
+		local delta = input.Position - settingsDragStart
+		SettingsMenu.Position = UDim2.new(settingsStartPos.X.Scale, settingsStartPos.X.Offset + delta.X, settingsStartPos.Y.Scale, settingsStartPos.Y.Offset + delta.Y)
+	end
 end)
 
 -- Function to spam commands on a player
+local isSpamming = {}
 local function spamPlayer(targetPlayer)
+	if isSpamming[targetPlayer.UserId] then
+		addLog("⚠️ Already spamming " .. targetPlayer.Name, Color3.fromRGB(255, 150, 50))
+		return
+	end
+	
+	isSpamming[targetPlayer.UserId] = true
+	addLog("⚡ Spamming " .. targetPlayer.Name .. "!", Color3.fromRGB(100, 255, 100))
+	
 	task.spawn(function()
 		for _, cmd in ipairs(commandsList) do
+			-- Check if player still exists
+			if not targetPlayer.Parent then
+				break
+			end
+			
 			-- Check cooldown if enabled
 			if cooldownEnabled then
 				if commandCooldowns[cmd] > 0 then
@@ -778,18 +946,34 @@ local function spamPlayer(targetPlayer)
 				commandCooldowns[cmd] = commandCooldownTimes[cmd] or 0.5
 			end
 			
-			-- Execute command
-			local args = {
-				[1] = cmd,
-				[2] = {targetPlayer.Name}
-			}
+			-- Execute command in chat
+			local chatMessage = cmd .. " " .. targetPlayer.Name
 			
-			-- This would normally send the command to the game's admin system
-			-- The actual remote call depends on the specific admin system being used
-			print("[Nexa] Executing: " .. cmd .. " on " .. targetPlayer.Name)
+			-- Try to send via chat (old chat system)
+			pcall(function()
+				game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(chatMessage, "All")
+			end)
 			
-			task.wait(0.05)
+			-- Also try via TextChatService (new chat system)
+			pcall(function()
+				game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync(chatMessage)
+			end)
+			
+			print("[Nexa] Executing: " .. chatMessage)
+			
+			-- Adjust wait time based on modes
+			local waitTime = 0.1
+			if rocketBalloonMode and (cmd == ";rocket" or cmd == ";balloon") then
+				waitTime = 0.05
+			elseif jailInverseMode and (cmd == ";jail" or cmd == ";inverse") then
+				waitTime = 0.05
+			end
+			
+			task.wait(waitTime)
 		end
+		
+		isSpamming[targetPlayer.UserId] = false
+		addLog("✅ Finished spamming " .. targetPlayer.Name, Color3.fromRGB(100, 255, 100))
 	end)
 end
 
@@ -840,8 +1024,9 @@ local function updatePlayerList()
 			
 			-- Button click handler
 			PlayerButton.MouseButton1Click:Connect(function()
-				spamPlayer(player)
-				addLog("⚡ Spamming " .. player.Name .. "...", Color3.fromRGB(255, 200, 100))
+				if not isSpamming[player.UserId] then
+					spamPlayer(player)
+				end
 			end)
 			
 			-- Hover effect
@@ -869,6 +1054,47 @@ Players.PlayerRemoving:Connect(updatePlayerList)
 
 -- Initial player list update
 updatePlayerList()
+
+-- Toggle button functionality
+ESPButton.MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+	ESPButton.BackgroundColor3 = espEnabled and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+	ESPButton.Text = espEnabled and "ON" or "OFF"
+	
+	-- Update ESP tags
+	for _, player in pairs(Players:GetPlayers()) do
+		if espEnabled and registeredUsers[player.UserId] then
+			addNexaTag(player)
+		elseif not espEnabled and player.Character then
+			local head = player.Character:FindFirstChild("Head")
+			if head then
+				local tag = head:FindFirstChild("NexaTag")
+				if tag then tag:Destroy() end
+			end
+		end
+	end
+end)
+
+JailButton.MouseButton1Click:Connect(function()
+	jailInverseMode = not jailInverseMode
+	JailButton.BackgroundColor3 = jailInverseMode and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+	JailButton.Text = jailInverseMode and "ON" or "OFF"
+end)
+
+RocketButton.MouseButton1Click:Connect(function()
+	rocketBalloonMode = not rocketBalloonMode
+	RocketButton.BackgroundColor3 = rocketBalloonMode and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+	RocketButton.Text = rocketBalloonMode and "ON" or "OFF"
+end)
+
+CooldownButton.MouseButton1Click:Connect(function()
+	cooldownEnabled = not cooldownEnabled
+	if not isMinimized then
+		CooldownDisplay.Visible = cooldownEnabled
+	end
+	CooldownButton.BackgroundColor3 = cooldownEnabled and Color3.fromRGB(70, 180, 130) or Color3.fromRGB(180, 70, 70)
+	CooldownButton.Text = cooldownEnabled and "ON" or "OFF"
+end)
 
 -- Add ESP tags to registered users
 if espEnabled then
