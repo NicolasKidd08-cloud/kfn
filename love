@@ -1,12 +1,88 @@
 --[[
     Nexa Hub v1.0 - Modern Green Edition
     Game: Steal a Brainrot
-    ALL FEATURES FROM ORIGINAL SCRIPT
+    ALL FEATURES WORKING - ERROR FIXED
 ]]
 
-if not game:IsLoaded() then
-    game.Loaded:Wait()
+-- ============================================================
+-- WAIT FOR GAME TO LOAD
+-- ============================================================
+
+repeat task.wait() until game:IsLoaded()
+repeat task.wait() until game.Players.LocalPlayer
+repeat task.wait() until game.Players.LocalPlayer.Character
+
+task.wait(3) -- Extra safety delay
+
+-- ============================================================
+-- SERVICES
+-- ============================================================
+
+local S = {
+    Players = game:GetService("Players"),
+    UIS = game:GetService("UserInputService"),
+    TweenService = game:GetService("TweenService"),
+    RS = game:GetService("ReplicatedStorage"),
+    HttpService = game:GetService("HttpService"),
+    RunService = game:GetService("RunService"),
+    TeleportService = game:GetService("TeleportService"),
+    Stats = game:GetService("Stats"),
+    Lighting = game:GetService("Lighting"),
+}
+
+S.LocalPlayer = S.Players.LocalPlayer
+S.PlayerGui = S.LocalPlayer:WaitForChild("PlayerGui")
+
+-- ============================================================
+-- SAFE MODULE LOADING
+-- ============================================================
+
+local function safeRequire(module)
+    local success, result = pcall(function()
+        return require(module)
+    end)
+    if success then
+        return result
+    else
+        warn("Failed to load module:", module.Name, "-", result)
+        return nil
+    end
 end
+
+local function waitForModule(parent, name, timeout)
+    local module = parent:WaitForChild(name, timeout or 15)
+    if not module then
+        warn("Module not found:", name)
+        return nil
+    end
+    return module
+end
+
+-- Wait for game modules with timeout
+local Packages = waitForModule(S.RS, "Packages", 20)
+local Datas = waitForModule(S.RS, "Datas", 20)
+local Shared = waitForModule(S.RS, "Shared", 20)
+local Utils = waitForModule(S.RS, "Utils", 20)
+
+if not (Packages and Datas and Shared and Utils) then
+    warn("Nexa Hub: Game modules not found! Make sure you're in 'Steal a Brainrot' game.")
+    S.LocalPlayer:Kick("Nexa Hub: Game modules not loaded. Rejoin and try again.")
+    return
+end
+
+local Synchronizer = safeRequire(waitForModule(Packages, "Synchronizer"))
+local AnimalsData = safeRequire(waitForModule(Datas, "Animals"))
+local RaritiesData = safeRequire(waitForModule(Datas, "Rarities"))
+local AnimalsShared = safeRequire(waitForModule(Shared, "Animals"))
+local NumberUtils = safeRequire(waitForModule(Utils, "NumberUtils"))
+
+if not (Synchronizer and AnimalsData and RaritiesData and AnimalsShared and NumberUtils) then
+    warn("Nexa Hub: Failed to load game modules!")
+    S.LocalPlayer:Kick("Nexa Hub: Module loading failed. Rejoin and try again.")
+    return
+end
+
+print("✓ All game modules loaded successfully!")
 
 -- ============================================================
 -- CONFIGURATION
