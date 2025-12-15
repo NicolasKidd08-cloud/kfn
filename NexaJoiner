@@ -1,0 +1,568 @@
+-- Nexa Joiner for Roblox Steal a Brainrot
+-- Integrates with Nexa Desktop App
+
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+
+-- Configuration
+local JOB_DATA_URL = "http://localhost:8080/jobs"
+local CHECK_INTERVAL = 1 -- Check every 1 second for speed
+local BYPASS_ERRORS = true -- Bypass "Server Full" errors
+
+-- Data Storage
+local jobLogs = {}
+local currentMode = "manual" -- "manual", "auto", "spammer"
+local selectedBrainrot = nil
+local isRunning = false
+local CHILLI_HUB_LOADED = false
+
+-- UI Creation
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Remove Roblox error notifications
+if BYPASS_ERRORS then
+    StarterGui:SetCore("TopbarEnabled", true)
+    
+    -- Hook into error messages and instantly dismiss them
+    local oldError = StarterGui.SetCore
+    StarterGui.SetCore = function(self, key, value)
+        if key == "SendNotification" and value and value.Title then
+            local title = tostring(value.Title):lower()
+            local text = tostring(value.Text):lower()
+            
+            -- Block server full / teleport failed errors
+            if title:find("teleport") or title:find("error") or 
+               text:find("full") or text:find("failed") or text:find("unable") then
+                return -- Don't show the notification
+            end
+        end
+        return oldError(self, key, value)
+    end
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "NexaJoiner"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 450, 0, 550)
+mainFrame.Position = UDim2.new(0.5, -225, 0.5, -275)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 35, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.ZIndex = 1000
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.Parent = mainFrame
+
+-- Make draggable
+local dragging, dragInput, dragStart, startPos
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        updateDrag(input)
+    end
+end)
+
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Name = "TitleBar"
+titleBar.Size = UDim2.new(1, 0, 0, 50)
+titleBar.BackgroundColor3 = Color3.fromRGB(35, 200, 100)
+titleBar.BorderSizePixel = 0
+titleBar.ZIndex = 1001
+titleBar.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 12)
+titleCorner.Parent = titleBar
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -60, 1, 0)
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "NEXA JOINER"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 24
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.ZIndex = 1002
+titleLabel.Parent = titleBar
+
+-- Close Button
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 40, 0, 40)
+closeButton.Position = UDim2.new(1, -45, 0, 5)
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 20
+closeButton.ZIndex = 1002
+closeButton.Parent = titleBar
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeButton
+
+closeButton.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+-- Info Label
+local infoLabel = Instance.new("TextLabel")
+infoLabel.Size = UDim2.new(1, -40, 0, 40)
+infoLabel.Position = UDim2.new(0, 20, 0, 60)
+infoLabel.BackgroundColor3 = Color3.fromRGB(35, 45, 35)
+infoLabel.Text = "🖥️ Desktop App: Not Connected"
+infoLabel.TextColor3 = Color3.fromRGB(255, 170, 100)
+infoLabel.Font = Enum.Font.GothamBold
+infoLabel.TextSize = 12
+infoLabel.ZIndex = 1001
+infoLabel.Parent = mainFrame
+
+local infoCorner = Instance.new("UICorner")
+infoCorner.CornerRadius = UDim.new(0, 8)
+infoCorner.Parent = infoLabel
+
+-- Mode Buttons
+local autoButton = Instance.new("TextButton")
+autoButton.Size = UDim2.new(0, 200, 0, 50)
+autoButton.Position = UDim2.new(0, 20, 0, 120)
+autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+autoButton.Text = "🎯 AUTO JOIN"
+autoButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoButton.Font = Enum.Font.GothamBold
+autoButton.TextSize = 16
+autoButton.ZIndex = 1001
+autoButton.Parent = mainFrame
+
+local autoCorner = Instance.new("UICorner")
+autoCorner.CornerRadius = UDim.new(0, 8)
+autoCorner.Parent = autoButton
+
+local spamButton = Instance.new("TextButton")
+spamButton.Size = UDim2.new(0, 200, 0, 50)
+spamButton.Position = UDim2.new(0, 230, 0, 120)
+spamButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+spamButton.Text = "⚡ SPAMMER"
+spamButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+spamButton.Font = Enum.Font.GothamBold
+spamButton.TextSize = 16
+spamButton.ZIndex = 1001
+spamButton.Parent = mainFrame
+
+local spamCorner = Instance.new("UICorner")
+spamCorner.CornerRadius = UDim.new(0, 8)
+spamCorner.Parent = spamButton
+
+local stopButton = Instance.new("TextButton")
+stopButton.Size = UDim2.new(1, -40, 0, 40)
+stopButton.Position = UDim2.new(0, 20, 0, 180)
+stopButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+stopButton.Text = "⏹️ STOP ALL"
+stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopButton.Font = Enum.Font.GothamBold
+stopButton.TextSize = 14
+stopButton.ZIndex = 1001
+stopButton.Parent = mainFrame
+
+local stopCorner = Instance.new("UICorner")
+stopCorner.CornerRadius = UDim.new(0, 8)
+stopCorner.Parent = stopButton
+
+-- Status Label
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -40, 0, 25)
+statusLabel.Position = UDim2.new(0, 20, 0, 235)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Status: Waiting for Desktop App..."
+statusLabel.TextColor3 = Color3.fromRGB(200, 255, 200)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 12
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.ZIndex = 1001
+statusLabel.Parent = mainFrame
+
+-- Job List Frame
+local jobListFrame = Instance.new("ScrollingFrame")
+jobListFrame.Size = UDim2.new(1, -40, 0, 260)
+jobListFrame.Position = UDim2.new(0, 20, 0, 270)
+jobListFrame.BackgroundColor3 = Color3.fromRGB(35, 45, 35)
+jobListFrame.BorderSizePixel = 0
+jobListFrame.ScrollBarThickness = 6
+jobListFrame.ZIndex = 1001
+jobListFrame.Parent = mainFrame
+
+local listCorner = Instance.new("UICorner")
+listCorner.CornerRadius = UDim.new(0, 8)
+listCorner.Parent = jobListFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 5)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Parent = jobListFrame
+
+-- Functions
+local function updateStatus(text)
+    statusLabel.Text = "Status: " .. text
+end
+
+local function formatMoney(amount)
+    if amount >= 1000000 then
+        return string.format("%.1fM", amount / 1000000)
+    elseif amount >= 1000 then
+        return string.format("%.1fK", amount / 1000)
+    else
+        return tostring(amount)
+    end
+end
+
+local function createJobEntry(brainrotName, money, jobId, players)
+    local entry = Instance.new("Frame")
+    entry.Size = UDim2.new(1, -10, 0, 60)
+    entry.BackgroundColor3 = Color3.fromRGB(45, 55, 45)
+    entry.BorderSizePixel = 0
+    entry.ZIndex = 1002
+    entry.Parent = jobListFrame
+    
+    local entryCorner = Instance.new("UICorner")
+    entryCorner.CornerRadius = UDim.new(0, 6)
+    entryCorner.Parent = entry
+    
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(0.6, -10, 0.5, -5)
+    nameLabel.Position = UDim2.new(0, 10, 0, 5)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = brainrotName
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 13
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    nameLabel.ZIndex = 1003
+    nameLabel.Parent = entry
+    
+    local moneyLabel = Instance.new("TextLabel")
+    moneyLabel.Size = UDim2.new(0.4, -10, 0.5, -5)
+    moneyLabel.Position = UDim2.new(0.6, 0, 0, 5)
+    moneyLabel.BackgroundTransparency = 1
+    moneyLabel.Text = "$" .. formatMoney(money) .. "/s"
+    moneyLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+    moneyLabel.Font = Enum.Font.GothamBold
+    moneyLabel.TextSize = 14
+    moneyLabel.TextXAlignment = Enum.TextXAlignment.Right
+    moneyLabel.ZIndex = 1003
+    moneyLabel.Parent = entry
+    
+    local playersLabel = Instance.new("TextLabel")
+    playersLabel.Size = UDim2.new(0.5, -10, 0.5, -5)
+    playersLabel.Position = UDim2.new(0, 10, 0.5, 0)
+    playersLabel.BackgroundTransparency = 1
+    playersLabel.Text = "👥 " .. players .. "/8"
+    playersLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    playersLabel.Font = Enum.Font.Gotham
+    playersLabel.TextSize = 11
+    playersLabel.TextXAlignment = Enum.TextXAlignment.Left
+    playersLabel.ZIndex = 1003
+    playersLabel.Parent = entry
+    
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.BackgroundTransparency = 1
+    button.Text = ""
+    button.ZIndex = 1004
+    button.Parent = entry
+    
+    button.MouseButton1Click:Connect(function()
+        selectedBrainrot = {name = brainrotName, money = money, jobId = jobId, players = players}
+        updateStatus("Selected: " .. brainrotName)
+        
+        -- Highlight selected
+        for _, child in pairs(jobListFrame:GetChildren()) do
+            if child:IsA("Frame") then
+                child.BackgroundColor3 = Color3.fromRGB(45, 55, 45)
+            end
+        end
+        entry.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
+    end)
+    
+    return entry
+end
+
+local function findChilliHubJobInput()
+    for _, gui in pairs(playerGui:GetDescendants()) do
+        if gui:IsA("TextBox") and gui.Visible then
+            local placeholder = gui.PlaceholderText:lower()
+            if placeholder:find("job") or placeholder:find("id") or placeholder:find("server") then
+                return gui
+            end
+        end
+    end
+    return nil
+end
+
+local function findChilliHubEnterButton()
+    local jobInput = findChilliHubJobInput()
+    if not jobInput then return nil end
+    
+    local parent = jobInput.Parent
+    if parent then
+        for _, child in pairs(parent:GetDescendants()) do
+            if child:IsA("TextButton") and child.Visible then
+                local text = child.Text:lower()
+                if text:find("join") or text:find("enter") or text:find("teleport") or text == ">" then
+                    return child
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function enterJobIdInChilliHub(jobId)
+    local jobInput = findChilliHubJobInput()
+    local enterButton = findChilliHubEnterButton()
+    
+    if not jobInput then
+        updateStatus("❌ Cannot find Chilli Hub!")
+        return false
+    end
+    
+    jobInput.Text = ""
+    wait(0.05)
+    jobInput.Text = jobId
+    wait(0.05)
+    
+    if enterButton then
+        pcall(function()
+            for _, connection in pairs(getconnections(enterButton.MouseButton1Click)) do
+                connection:Fire()
+            end
+            for _, connection in pairs(getconnections(enterButton.Activated)) do
+                connection:Fire()
+            end
+        end)
+        return true
+    end
+    
+    return false
+end
+
+local function parseMoneyPerSec(moneyText)
+    local amount, multiplier = moneyText:match("%$?([%d%.]+)([MKmkBb]?)")
+    if not amount then return 0 end
+    
+    local value = tonumber(amount) or 0
+    if multiplier and multiplier:upper() == "M" then
+        value = value * 1000000
+    elseif multiplier and multiplier:upper() == "K" then
+        value = value * 1000
+    elseif multiplier and multiplier:upper() == "B" then
+        value = value * 1000000000
+    end
+    
+    return value
+end
+
+local function addJobLog(jobData)
+    for i, log in pairs(jobLogs) do
+        if log.jobId == jobData.jobId then
+            jobLogs[i] = jobData
+            for _, child in pairs(jobListFrame:GetChildren()) do
+                if child:IsA("Frame") then
+                    child:Destroy()
+                end
+            end
+            for _, log in pairs(jobLogs) do
+                createJobEntry(log.name, log.money, log.jobId, log.players)
+            end
+            return
+        end
+    end
+    
+    table.insert(jobLogs, 1, jobData)
+    createJobEntry(jobData.name, jobData.money, jobData.jobId, jobData.players)
+    
+    jobListFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
+    
+    if (currentMode == "auto" or currentMode == "spammer") then
+        if not selectedBrainrot or currentMode == "auto" then
+            selectedBrainrot = jobData
+            spawn(function()
+                wait(0.3)
+                enterJobIdInChilliHub(jobData.jobId)
+            end)
+        end
+    end
+end
+
+local function fetchJobsFromDesktop()
+    spawn(function()
+        while wait(CHECK_INTERVAL) do
+            local success, result = pcall(function()
+                local response = HttpService:GetAsync(JOB_DATA_URL)
+                local jobs = HttpService:JSONDecode(response)
+                
+                if jobs and #jobs > 0 then
+                    infoLabel.Text = "🖥️ Desktop App: Connected (" .. #jobs .. " jobs)"
+                    infoLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+                    
+                    for _, job in ipairs(jobs) do
+                        if job.name and job.jobId then
+                            addJobLog({
+                                name = job.name,
+                                money = parseMoneyPerSec(job.money or "$0M/s"),
+                                jobId = job.jobId,
+                                players = tonumber(job.players) or 0
+                            })
+                        end
+                    end
+                else
+                    infoLabel.Text = "🖥️ Desktop App: No jobs yet"
+                    infoLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+                end
+            end)
+            
+            if not success then
+                infoLabel.Text = "🖥️ Desktop App: Not Running"
+                infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+            end
+        end
+    end)
+end
+
+local function autoJoinMode()
+    while isRunning and currentMode == "auto" do
+        if selectedBrainrot then
+            updateStatus("🔄 Auto joining: " .. selectedBrainrot.name)
+            enterJobIdInChilliHub(selectedBrainrot.jobId)
+            wait(2)
+        else
+            updateStatus("⏸️ Waiting for job...")
+            wait(1)
+        end
+    end
+end
+
+local function spammerMode()
+    while isRunning and currentMode == "spammer" do
+        if selectedBrainrot then
+            updateStatus("⚡ SPAMMING: " .. selectedBrainrot.name)
+            enterJobIdInChilliHub(selectedBrainrot.jobId)
+            wait(0.1)  -- SUPER FAST
+        else
+            updateStatus("⏸️ Spammer: Select job...")
+            wait(1)
+        end
+    end
+end
+
+-- Button Handlers
+autoButton.MouseButton1Click:Connect(function()
+    if currentMode == "auto" then
+        isRunning = false
+        currentMode = "manual"
+        autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+        updateStatus("⏹️ Auto Join OFF")
+        return
+    end
+    
+    isRunning = true
+    currentMode = "auto"
+    autoButton.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
+    spamButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+    updateStatus("🟢 Auto Join ON")
+    
+    spawn(autoJoinMode)
+end)
+
+spamButton.MouseButton1Click:Connect(function()
+    if currentMode == "spammer" then
+        isRunning = false
+        currentMode = "manual"
+        spamButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+        updateStatus("⏹️ Spammer OFF")
+        return
+    end
+    
+    isRunning = true
+    currentMode = "spammer"
+    spamButton.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
+    autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+    updateStatus("🟢 SPAMMER ON")
+    
+    spawn(spammerMode)
+end)
+
+stopButton.MouseButton1Click:Connect(function()
+    isRunning = false
+    currentMode = "manual"
+    selectedBrainrot = nil
+    autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+    spamButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+    updateStatus("⏹️ All stopped")
+    
+    for _, child in pairs(jobListFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child.BackgroundColor3 = Color3.fromRGB(45, 55, 45)
+        end
+    end
+end)
+
+-- Check for Chilli Hub
+spawn(function()
+    for i = 1, 15 do
+        if findChilliHubJobInput() then
+            CHILLI_HUB_LOADED = true
+            updateStatus("✅ Chilli Hub detected!")
+            break
+        end
+        wait(1)
+    end
+    
+    if not CHILLI_HUB_LOADED then
+        updateStatus("⚠️ Load Chilli Hub first!")
+    end
+end)
+
+-- Start fetching jobs
+fetchJobsFromDesktop()
+
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("✅ Nexa Joiner Loaded!")
+print("🖥️  Desktop App + Server running!")
+print("⚡ Error bypass: ACTIVE")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
