@@ -10,7 +10,7 @@ local RunService = game:GetService("RunService")
 
 -- YOU NEED TO CHANGE THIS URL! 
 -- Run the Python desktop app and copy the URL it shows
-local JOB_DATA_URL = "http://192.168.68.63:8080/jobs"
+local JOB_DATA_URL = "https://suzanna-nescient-nonconnotatively.ngrok-free.dev/jobs"
 
 -- Configuration
 local GAME_ID = 18901165922
