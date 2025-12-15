@@ -22,25 +22,15 @@ local CHILLI_HUB_LOADED = false
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Remove Roblox error notifications
+-- Remove Roblox error notifications (Fixed version)
 if BYPASS_ERRORS then
-    StarterGui:SetCore("TopbarEnabled", true)
+    pcall(function()
+        StarterGui:SetCore("TopbarEnabled", true)
+    end)
     
-    -- Hook into error messages and instantly dismiss them
-    local oldError = StarterGui.SetCore
-    StarterGui.SetCore = function(self, key, value)
-        if key == "SendNotification" and value and value.Title then
-            local title = tostring(value.Title):lower()
-            local text = tostring(value.Text):lower()
-            
-            -- Block server full / teleport failed errors
-            if title:find("teleport") or title:find("error") or 
-               text:find("full") or text:find("failed") or text:find("unable") then
-                return -- Don't show the notification
-            end
-        end
-        return oldError(self, key, value)
-    end
+    -- Note: Error notification blocking requires a different approach in newer Roblox
+    -- The hookfunction method may not work on all executors
+    -- You can try using pcall to wrap teleport attempts instead
 end
 
 local screenGui = Instance.new("ScreenGui")
