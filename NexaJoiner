@@ -1,13 +1,17 @@
--- Nexa Joiner for Roblox Steal a Brainrot
--- Auto-joins jobs from Desktop App
+-- Nexa Joiner - Local File Version (Works with ANY executor!)
+-- No HTTP needed - uses local files!
 
 local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
--- CHANGE THIS URL TO YOUR DESKTOP APP URL!
-local JOB_DATA_URL = "http://192.168.68.63:8080/jobs"
+-- CHANGE THIS TO YOUR EXECUTOR'S WORKSPACE FOLDER!
+-- Examples:
+-- Synapse: "workspace/nexa_jobs.json"
+-- Fluxus: "Fluxus/workspace/nexa_jobs.json"
+-- Delta: "Delta/workspace/nexa_jobs.json"
+-- Seliware: "workspace/nexa_jobs.json"
+local JOBS_FILE = "workspace/nexa_jobs.json"  -- Seliware uses this!
 
 -- Configuration
 local GAME_ID = 18901165922
@@ -25,7 +29,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 wait(1)
 
--- Remove existing GUIs
+-- Remove existing
 pcall(function()
     if playerGui:FindFirstChild("NexaJoiner") then 
         playerGui.NexaJoiner:Destroy() 
@@ -38,9 +42,19 @@ end)
 wait(0.5)
 
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("✅ Nexa Joiner Loading...")
-print("📡 Server URL: " .. JOB_DATA_URL)
+print("✅ Nexa Joiner Loading (File Mode)...")
+print("📁 Jobs File: " .. JOBS_FILE)
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+-- Check if readfile exists
+local canReadFiles = false
+if readfile and writefile then
+    canReadFiles = true
+    print("[Nexa] ✅ File functions found!")
+else
+    warn("[Nexa] ❌ Your executor doesn't support readfile/writefile!")
+    warn("[Nexa] This won't work - try a different executor!")
+end
 
 -- Main GUI
 local screenGui = Instance.new("ScreenGui")
@@ -145,7 +159,7 @@ local infoLabel = Instance.new("TextLabel")
 infoLabel.Size = UDim2.new(1, -40, 0, 40)
 infoLabel.Position = UDim2.new(0, 20, 0, 60)
 infoLabel.BackgroundColor3 = Color3.fromRGB(35, 45, 35)
-infoLabel.Text = "🖥️ Desktop App: Connecting..."
+infoLabel.Text = "📁 Reading jobs file..."
 infoLabel.TextColor3 = Color3.fromRGB(255, 170, 100)
 infoLabel.Font = Enum.Font.GothamBold
 infoLabel.TextSize = 12
@@ -230,7 +244,7 @@ listLayout.Padding = UDim.new(0, 5)
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Parent = jobListFrame
 
--- Background Status (Separate GUI)
+-- Background Status
 local bgScreenGui = Instance.new("ScreenGui")
 bgScreenGui.Name = "BackgroundStatus"
 bgScreenGui.ResetOnSpawn = false
@@ -423,7 +437,6 @@ local function clearJobList()
 end
 
 local function addJobLog(jobData)
-    -- Check if job already exists
     for i, log in pairs(jobLogs) do
         if log.jobId == jobData.jobId then
             jobLogs[i] = jobData
@@ -436,30 +449,34 @@ local function addJobLog(jobData)
         end
     end
     
-    -- Add new job
     table.insert(jobLogs, 1, jobData)
     createJobEntry(jobData.name, jobData.money, jobData.jobId, jobData.players)
     jobListFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
 end
 
-local function fetchJobsFromDesktop()
+local function readJobsFromFile()
+    if not canReadFiles then
+        infoLabel.Text = "❌ Executor Not Supported!"
+        infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        updateStatus("❌ Your executor doesn't support file operations!")
+        return
+    end
+    
     spawn(function()
-        local connectionTested = false
-        local retryAttempts = 0
+        local firstRead = true
         
         while wait(CHECK_INTERVAL) do
             local success, result = pcall(function()
-                local response = HttpService:GetAsync(JOB_DATA_URL, true)
-                local jobs = HttpService:JSONDecode(response)
+                local fileContent = readfile(JOBS_FILE)
+                local jobs = game:GetService("HttpService"):JSONDecode(fileContent)
                 
-                if not connectionTested then
-                    connectionTested = true
-                    retryAttempts = 0
-                    print("[Nexa] ✅ Connected to Desktop App!")
+                if firstRead then
+                    firstRead = false
+                    print("[Nexa] ✅ Successfully reading jobs file!")
                 end
                 
                 if jobs and #jobs > 0 then
-                    infoLabel.Text = "🖥️ Desktop App: Connected (" .. #jobs .. " jobs)"
+                    infoLabel.Text = "📁 File: Active (" .. #jobs .. " jobs)"
                     infoLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
                     
                     if currentMode == "background" then
@@ -487,7 +504,7 @@ local function fetchJobsFromDesktop()
                         end
                     end
                     
-                    -- Auto-join if enabled
+                    -- Auto-join
                     if (currentMode == "auto" or currentMode == "background") and bestJob and not isJoining then
                         print("[Nexa] Best job found: " .. bestJob.name)
                         spawn(function()
@@ -496,7 +513,7 @@ local function fetchJobsFromDesktop()
                         end)
                     end
                 else
-                    infoLabel.Text = "🖥️ Desktop App: Connected (0 jobs)"
+                    infoLabel.Text = "📁 File: Active (0 jobs)"
                     infoLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
                     
                     if currentMode == "background" then
@@ -506,33 +523,18 @@ local function fetchJobsFromDesktop()
             end)
             
             if not success then
-                retryAttempts = retryAttempts + 1
-                local errorMsg = tostring(result)
+                infoLabel.Text = "❌ Cannot read file!"
+                infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
                 
-                if errorMsg:find("Http requests are not enabled") or errorMsg:find("HttpService") then
-                    infoLabel.Text = "❌ Enable HttpService!"
-                    infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-                    updateStatus("❌ HttpService not enabled!")
-                    print("[Nexa] ERROR: Enable HTTP Requests in game settings!")
-                    print("[Nexa] Home > Game Settings > Security > Allow HTTP Requests")
-                elseif retryAttempts <= 3 then
-                    infoLabel.Text = "🔄 Connecting... (" .. retryAttempts .. "/3)"
-                    infoLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
-                else
-                    infoLabel.Text = "🖥️ Desktop App: Not Running"
-                    infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-                    
-                    if not connectionTested then
-                        print("[Nexa] Cannot connect to: " .. JOB_DATA_URL)
-                        print("[Nexa] Make sure Python Desktop App is running!")
-                    end
+                if firstRead then
+                    print("[Nexa] Cannot read file: " .. JOBS_FILE)
+                    print("[Nexa] Error: " .. tostring(result))
+                    print("[Nexa] Make sure Python app is saving to the correct location!")
                 end
                 
                 if currentMode == "background" then
-                    updateBackgroundStatus("🔴 Offline", Color3.fromRGB(255, 100, 100))
+                    updateBackgroundStatus("🔴 No File", Color3.fromRGB(255, 100, 100))
                 end
-            else
-                retryAttempts = 0
             end
         end
     end)
@@ -590,7 +592,7 @@ stopButton.MouseButton1Click:Connect(function()
     updateStatus("⏹️ Stopped")
 end)
 
--- Keep background frame in position
+-- Keep background in position
 RunService.Heartbeat:Connect(function()
     if bgStatusFrame.Visible and bgStatusFrame.Position ~= UDim2.new(1, -230, 1, -70) then
         bgStatusFrame.Position = UDim2.new(1, -230, 1, -70)
@@ -598,10 +600,16 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- Start
-fetchJobsFromDesktop()
+readJobsFromFile()
 
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 print("✅ Nexa Joiner Ready!")
-print("📡 Monitoring: " .. JOB_DATA_URL)
-print("🎮 Direct teleport - No Chilli Hub needed")
+print("📁 Reading from: " .. JOBS_FILE)
+if canReadFiles then
+    print("✅ File operations supported")
+else
+    print("❌ File operations NOT supported - won't work!")
+end
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+
