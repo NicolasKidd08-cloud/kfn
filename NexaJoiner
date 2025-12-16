@@ -1,26 +1,21 @@
 -- Nexa Joiner for Roblox Steal a Brainrot
 -- Auto-joins jobs from Desktop App
--- NO SEPARATE SCRIPT NEEDED - This is complete!
 
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
-local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
 
--- YOU NEED TO CHANGE THIS URL! 
--- Run the Python desktop app and copy the URL it shows
-local JOB_DATA_URL = "http://192.168.68.63:8080/jobs"  -- CHANGE THIS!
+-- CHANGE THIS URL TO YOUR DESKTOP APP URL!
+local JOB_DATA_URL = "http://192.168.68.63:8080/jobs"
 
 -- Configuration
 local GAME_ID = 18901165922
 local CHECK_INTERVAL = 2
 
--- Data
+-- Variables
 local jobLogs = {}
 local currentMode = "manual"
-local selectedBrainrot = nil
-local isRunning = false
 local isJoining = false
 local processedJobs = {}
 
@@ -30,13 +25,14 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 wait(1)
 
--- Remove existing
+-- Remove existing GUIs
 pcall(function()
-    local existing = playerGui:FindFirstChild("NexaJoiner")
-    if existing then existing:Destroy() end
-    
-    local existingBg = playerGui:FindFirstChild("BackgroundStatus")
-    if existingBg then existingBg:Destroy() end
+    if playerGui:FindFirstChild("NexaJoiner") then 
+        playerGui.NexaJoiner:Destroy() 
+    end
+    if playerGui:FindFirstChild("BackgroundStatus") then 
+        playerGui.BackgroundStatus:Destroy() 
+    end
 end)
 
 wait(0.5)
@@ -46,7 +42,7 @@ print("✅ Nexa Joiner Loading...")
 print("📡 Server URL: " .. JOB_DATA_URL)
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
--- GUI
+-- Main GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "NexaJoiner"
 screenGui.ResetOnSpawn = false
@@ -56,21 +52,19 @@ screenGui.Parent = playerGui
 
 -- Main Frame
 local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 450, 0, 600)
 mainFrame.Position = UDim2.new(0.5, -225, 0.5, -300)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 35, 25)
 mainFrame.BorderSizePixel = 0
-mainFrame.ZIndex = 1000
-mainFrame.Visible = true
 mainFrame.Parent = screenGui
 
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 12)
-uiCorner.Parent = mainFrame
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 12)
+mainCorner.Parent = mainFrame
 
 -- Make draggable
 local dragging, dragInput, dragStart, startPos
+
 local function updateDrag(input)
     local delta = input.Position - dragStart
     mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
@@ -107,7 +101,6 @@ local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 50)
 titleBar.BackgroundColor3 = Color3.fromRGB(35, 200, 100)
 titleBar.BorderSizePixel = 0
-titleBar.ZIndex = 1001
 titleBar.Parent = mainFrame
 
 local titleCorner = Instance.new("UICorner")
@@ -123,7 +116,6 @@ titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 24
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.ZIndex = 1002
 titleLabel.Parent = titleBar
 
 -- Close Button
@@ -135,7 +127,6 @@ closeButton.Text = "X"
 closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeButton.Font = Enum.Font.GothamBold
 closeButton.TextSize = 20
-closeButton.ZIndex = 1002
 closeButton.Parent = titleBar
 
 local closeCorner = Instance.new("UICorner")
@@ -144,6 +135,9 @@ closeCorner.Parent = closeButton
 
 closeButton.MouseButton1Click:Connect(function()
     screenGui:Destroy()
+    pcall(function()
+        playerGui:FindFirstChild("BackgroundStatus"):Destroy()
+    end)
 end)
 
 -- Info Label
@@ -155,7 +149,6 @@ infoLabel.Text = "🖥️ Desktop App: Connecting..."
 infoLabel.TextColor3 = Color3.fromRGB(255, 170, 100)
 infoLabel.Font = Enum.Font.GothamBold
 infoLabel.TextSize = 12
-infoLabel.ZIndex = 1001
 infoLabel.Parent = mainFrame
 
 local infoCorner = Instance.new("UICorner")
@@ -167,11 +160,10 @@ local autoButton = Instance.new("TextButton")
 autoButton.Size = UDim2.new(1, -40, 0, 50)
 autoButton.Position = UDim2.new(0, 20, 0, 120)
 autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
-autoButton.Text = "🎯 AUTO JOIN (Best Job)"
+autoButton.Text = "🎯 AUTO JOIN (OFF)"
 autoButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 autoButton.Font = Enum.Font.GothamBold
 autoButton.TextSize = 16
-autoButton.ZIndex = 1001
 autoButton.Parent = mainFrame
 
 local autoCorner = Instance.new("UICorner")
@@ -187,7 +179,6 @@ backgroundButton.Text = "👻 BACKGROUND MODE"
 backgroundButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 backgroundButton.Font = Enum.Font.GothamBold
 backgroundButton.TextSize = 16
-backgroundButton.ZIndex = 1001
 backgroundButton.Parent = mainFrame
 
 local backgroundCorner = Instance.new("UICorner")
@@ -203,7 +194,6 @@ stopButton.Text = "⏹️ STOP ALL"
 stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 stopButton.Font = Enum.Font.GothamBold
 stopButton.TextSize = 14
-stopButton.ZIndex = 1001
 stopButton.Parent = mainFrame
 
 local stopCorner = Instance.new("UICorner")
@@ -220,17 +210,15 @@ statusLabel.TextColor3 = Color3.fromRGB(200, 255, 200)
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.TextSize = 12
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.ZIndex = 1001
 statusLabel.Parent = mainFrame
 
--- Job List Frame
+-- Job List
 local jobListFrame = Instance.new("ScrollingFrame")
 jobListFrame.Size = UDim2.new(1, -40, 0, 260)
 jobListFrame.Position = UDim2.new(0, 20, 0, 330)
 jobListFrame.BackgroundColor3 = Color3.fromRGB(35, 45, 35)
 jobListFrame.BorderSizePixel = 0
 jobListFrame.ScrollBarThickness = 6
-jobListFrame.ZIndex = 1001
 jobListFrame.Parent = mainFrame
 
 local listCorner = Instance.new("UICorner")
@@ -242,11 +230,10 @@ listLayout.Padding = UDim.new(0, 5)
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Parent = jobListFrame
 
--- Background Status
+-- Background Status (Separate GUI)
 local bgScreenGui = Instance.new("ScreenGui")
 bgScreenGui.Name = "BackgroundStatus"
 bgScreenGui.ResetOnSpawn = false
-bgScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 bgScreenGui.IgnoreGuiInset = true
 bgScreenGui.DisplayOrder = 99
 bgScreenGui.Parent = playerGui
@@ -257,7 +244,6 @@ bgStatusFrame.Position = UDim2.new(1, -230, 1, -70)
 bgStatusFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 20)
 bgStatusFrame.BackgroundTransparency = 0.3
 bgStatusFrame.BorderSizePixel = 0
-bgStatusFrame.ZIndex = 999
 bgStatusFrame.Active = false
 bgStatusFrame.Visible = false
 bgStatusFrame.Parent = bgScreenGui
@@ -275,7 +261,6 @@ bgStatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
 bgStatusLabel.Font = Enum.Font.GothamBold
 bgStatusLabel.TextSize = 11
 bgStatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-bgStatusLabel.ZIndex = 1000
 bgStatusLabel.Active = false
 bgStatusLabel.Parent = bgStatusFrame
 
@@ -289,7 +274,6 @@ bgCurrentJobLabel.Font = Enum.Font.Gotham
 bgCurrentJobLabel.TextSize = 9
 bgCurrentJobLabel.TextXAlignment = Enum.TextXAlignment.Left
 bgCurrentJobLabel.TextTruncate = Enum.TextTruncate.AtEnd
-bgCurrentJobLabel.ZIndex = 1000
 bgCurrentJobLabel.Active = false
 bgCurrentJobLabel.Parent = bgStatusFrame
 
@@ -308,22 +292,30 @@ local function updateBackgroundJob(name, money)
     bgCurrentJobLabel.Text = name .. " - " .. money
 end
 
-local function formatMoney(amount)
-    if amount >= 1000000 then
-        return string.format("%.1fM", amount / 1000000)
-    elseif amount >= 1000 then
-        return string.format("%.1fK", amount / 1000)
-    else
-        return tostring(amount)
+local function parseMoneyPerSec(moneyText)
+    if not moneyText then return 0 end
+    local amount, multiplier = moneyText:match("%$?([%d%.]+)([MKmkBb]?)")
+    if not amount then return 0 end
+    
+    local value = tonumber(amount) or 0
+    multiplier = (multiplier or ""):upper()
+    
+    if multiplier == "M" then
+        value = value * 1000000
+    elseif multiplier == "K" then
+        value = value * 1000
+    elseif multiplier == "B" then
+        value = value * 1000000000
     end
+    
+    return value
 end
 
-local function createJobEntry(brainrotName, money, jobId, players)
+local function createJobEntry(jobName, money, jobId, players)
     local entry = Instance.new("Frame")
     entry.Size = UDim2.new(1, -10, 0, 70)
     entry.BackgroundColor3 = Color3.fromRGB(45, 55, 45)
     entry.BorderSizePixel = 0
-    entry.ZIndex = 1002
     entry.Parent = jobListFrame
     
     local entryCorner = Instance.new("UICorner")
@@ -334,13 +326,12 @@ local function createJobEntry(brainrotName, money, jobId, players)
     nameLabel.Size = UDim2.new(1, -20, 0, 20)
     nameLabel.Position = UDim2.new(0, 10, 0, 5)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = brainrotName
+    nameLabel.Text = jobName
     nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.TextSize = 13
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
     nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
-    nameLabel.ZIndex = 1003
     nameLabel.Parent = entry
     
     local moneyLabel = Instance.new("TextLabel")
@@ -352,7 +343,6 @@ local function createJobEntry(brainrotName, money, jobId, players)
     moneyLabel.Font = Enum.Font.GothamBold
     moneyLabel.TextSize = 12
     moneyLabel.TextXAlignment = Enum.TextXAlignment.Left
-    moneyLabel.ZIndex = 1003
     moneyLabel.Parent = entry
     
     local playersLabel = Instance.new("TextLabel")
@@ -364,7 +354,6 @@ local function createJobEntry(brainrotName, money, jobId, players)
     playersLabel.Font = Enum.Font.Gotham
     playersLabel.TextSize = 11
     playersLabel.TextXAlignment = Enum.TextXAlignment.Right
-    playersLabel.ZIndex = 1003
     playersLabel.Parent = entry
     
     local jobIdLabel = Instance.new("TextLabel")
@@ -377,32 +366,12 @@ local function createJobEntry(brainrotName, money, jobId, players)
     jobIdLabel.TextSize = 8
     jobIdLabel.TextXAlignment = Enum.TextXAlignment.Left
     jobIdLabel.TextTruncate = Enum.TextTruncate.AtEnd
-    jobIdLabel.ZIndex = 1003
     jobIdLabel.Parent = entry
-    
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 1, 0)
-    button.BackgroundTransparency = 1
-    button.Text = ""
-    button.ZIndex = 1004
-    button.Parent = entry
-    
-    button.MouseButton1Click:Connect(function()
-        selectedBrainrot = {name = brainrotName, money = money, jobId = jobId, players = players}
-        updateStatus("Selected: " .. brainrotName)
-        
-        for _, child in pairs(jobListFrame:GetChildren()) do
-            if child:IsA("Frame") then
-                child.BackgroundColor3 = Color3.fromRGB(45, 55, 45)
-            end
-        end
-        entry.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
-    end)
     
     return entry
 end
 
-local function directTeleportToJob(jobId, jobName, jobMoney)
+local function teleportToJob(jobId, jobName, jobMoney)
     if isJoining then
         updateStatus("Already joining...")
         return
@@ -411,7 +380,7 @@ local function directTeleportToJob(jobId, jobName, jobMoney)
     processedJobs[jobId] = true
     isJoining = true
     
-    updateStatus("🔄 Teleporting to: " .. jobName)
+    updateStatus("🔄 Joining: " .. jobName)
     
     if currentMode == "background" then
         updateBackgroundStatus("🔄 Joining...", Color3.fromRGB(255, 200, 100))
@@ -445,58 +414,47 @@ local function directTeleportToJob(jobId, jobName, jobMoney)
     end
 end
 
-local function parseMoneyPerSec(moneyText)
-    if not moneyText then return 0 end
-    local amount, multiplier = moneyText:match("%$?([%d%.]+)([MKmkBb]?)")
-    if not amount then return 0 end
-    
-    local value = tonumber(amount) or 0
-    multiplier = multiplier or ""
-    
-    if multiplier:upper() == "M" then
-        value = value * 1000000
-    elseif multiplier:upper() == "K" then
-        value = value * 1000
-    elseif multiplier:upper() == "B" then
-        value = value * 1000000000
+local function clearJobList()
+    for _, child in pairs(jobListFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
     end
-    
-    return value
 end
 
 local function addJobLog(jobData)
+    -- Check if job already exists
     for i, log in pairs(jobLogs) do
         if log.jobId == jobData.jobId then
             jobLogs[i] = jobData
-            for _, child in pairs(jobListFrame:GetChildren()) do
-                if child:IsA("Frame") then
-                    child:Destroy()
-                end
-            end
+            clearJobList()
             for _, log in pairs(jobLogs) do
                 createJobEntry(log.name, log.money, log.jobId, log.players)
             end
+            jobListFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
             return
         end
     end
     
+    -- Add new job
     table.insert(jobLogs, 1, jobData)
     createJobEntry(jobData.name, jobData.money, jobData.jobId, jobData.players)
-    
     jobListFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
 end
 
 local function fetchJobsFromDesktop()
     spawn(function()
         local connectionTested = false
+        local retryAttempts = 0
         
         while wait(CHECK_INTERVAL) do
             local success, result = pcall(function()
-                local response = HttpService:GetAsync(JOB_DATA_URL)
+                local response = HttpService:GetAsync(JOB_DATA_URL, true)
                 local jobs = HttpService:JSONDecode(response)
                 
                 if not connectionTested then
                     connectionTested = true
+                    retryAttempts = 0
                     print("[Nexa] ✅ Connected to Desktop App!")
                 end
                 
@@ -522,22 +480,20 @@ local function fetchJobsFromDesktop()
                                 players = job.players or "0"
                             })
                             
-                            if money > bestMoney then
+                            if money > bestMoney and not processedJobs[job.jobId] then
                                 bestMoney = money
                                 bestJob = job
                             end
                         end
                     end
                     
+                    -- Auto-join if enabled
                     if (currentMode == "auto" or currentMode == "background") and bestJob and not isJoining then
-                        if not processedJobs[bestJob.jobId] then
-                            print("[Nexa] New best job:", bestJob.name)
-                            
-                            spawn(function()
-                                wait(0.5)
-                                directTeleportToJob(bestJob.jobId, bestJob.name, bestJob.money)
-                            end)
-                        end
+                        print("[Nexa] Best job found: " .. bestJob.name)
+                        spawn(function()
+                            wait(0.5)
+                            teleportToJob(bestJob.jobId, bestJob.name, bestJob.money)
+                        end)
                     end
                 else
                     infoLabel.Text = "🖥️ Desktop App: Connected (0 jobs)"
@@ -550,32 +506,33 @@ local function fetchJobsFromDesktop()
             end)
             
             if not success then
+                retryAttempts = retryAttempts + 1
                 local errorMsg = tostring(result)
                 
-                if errorMsg:find("Http requests are not enabled") then
+                if errorMsg:find("Http requests are not enabled") or errorMsg:find("HttpService") then
                     infoLabel.Text = "❌ Enable HttpService!"
                     infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
                     updateStatus("❌ HttpService not enabled!")
                     print("[Nexa] ERROR: Enable HTTP Requests in game settings!")
-                elseif errorMsg:find("YOUR_IP_HERE") then
-                    infoLabel.Text = "❌ UPDATE THE SCRIPT URL!"
-                    infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-                    updateStatus("❌ You need to update JOB_DATA_URL in the script!")
-                    print("[Nexa] ERROR: Replace YOUR_IP_HERE with your actual IP!")
-                    print("[Nexa] Get the IP from the Python desktop app!")
+                    print("[Nexa] Home > Game Settings > Security > Allow HTTP Requests")
+                elseif retryAttempts <= 3 then
+                    infoLabel.Text = "🔄 Connecting... (" .. retryAttempts .. "/3)"
+                    infoLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
                 else
                     infoLabel.Text = "🖥️ Desktop App: Not Running"
                     infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
                     
                     if not connectionTested then
-                        print("[Nexa] Cannot connect to:", JOB_DATA_URL)
-                        print("[Nexa] Make sure Python app is running!")
+                        print("[Nexa] Cannot connect to: " .. JOB_DATA_URL)
+                        print("[Nexa] Make sure Python Desktop App is running!")
                     end
                 end
                 
                 if currentMode == "background" then
                     updateBackgroundStatus("🔴 Offline", Color3.fromRGB(255, 100, 100))
                 end
+            else
+                retryAttempts = 0
             end
         end
     end)
@@ -584,18 +541,18 @@ end
 -- Button Handlers
 autoButton.MouseButton1Click:Connect(function()
     if currentMode == "auto" then
-        isRunning = false
         currentMode = "manual"
         autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+        autoButton.Text = "🎯 AUTO JOIN (OFF)"
         bgStatusFrame.Visible = false
         mainFrame.Visible = true
         updateStatus("⏹️ Auto OFF")
         return
     end
     
-    isRunning = true
     currentMode = "auto"
     autoButton.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
+    autoButton.Text = "🎯 AUTO JOIN (ON)"
     backgroundButton.BackgroundColor3 = Color3.fromRGB(80, 40, 180)
     bgStatusFrame.Visible = false
     mainFrame.Visible = true
@@ -604,7 +561,6 @@ end)
 
 backgroundButton.MouseButton1Click:Connect(function()
     if currentMode == "background" then
-        isRunning = false
         currentMode = "manual"
         backgroundButton.BackgroundColor3 = Color3.fromRGB(80, 40, 180)
         bgStatusFrame.Visible = false
@@ -613,10 +569,10 @@ backgroundButton.MouseButton1Click:Connect(function()
         return
     end
     
-    isRunning = true
     currentMode = "background"
     backgroundButton.BackgroundColor3 = Color3.fromRGB(120, 60, 200)
     autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+    autoButton.Text = "🎯 AUTO JOIN (OFF)"
     bgStatusFrame.Visible = true
     mainFrame.Visible = false
     updateBackgroundStatus("🟢 Active", Color3.fromRGB(100, 255, 100))
@@ -625,25 +581,18 @@ backgroundButton.MouseButton1Click:Connect(function()
 end)
 
 stopButton.MouseButton1Click:Connect(function()
-    isRunning = false
     currentMode = "manual"
-    selectedBrainrot = nil
     autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+    autoButton.Text = "🎯 AUTO JOIN (OFF)"
     backgroundButton.BackgroundColor3 = Color3.fromRGB(80, 40, 180)
     bgStatusFrame.Visible = false
     mainFrame.Visible = true
     updateStatus("⏹️ Stopped")
-    
-    for _, child in pairs(jobListFrame:GetChildren()) do
-        if child:IsA("Frame") then
-            child.BackgroundColor3 = Color3.fromRGB(45, 55, 45)
-        end
-    end
 end)
 
--- Keep background in position
+-- Keep background frame in position
 RunService.Heartbeat:Connect(function()
-    if bgStatusFrame.Position ~= UDim2.new(1, -230, 1, -70) then
+    if bgStatusFrame.Visible and bgStatusFrame.Position ~= UDim2.new(1, -230, 1, -70) then
         bgStatusFrame.Position = UDim2.new(1, -230, 1, -70)
     end
 end)
@@ -652,651 +601,7 @@ end)
 fetchJobsFromDesktop()
 
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("✅ Nexa Joiner Loaded!")
-print("📡 Monitoring:", JOB_DATA_URL)
+print("✅ Nexa Joiner Ready!")
+print("📡 Monitoring: " .. JOB_DATA_URL)
 print("🎮 Direct teleport - No Chilli Hub needed")
-print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
--- Data Storage
-local jobLogs = {}
-local currentMode = "manual" -- "manual", "auto", "background"
-local selectedBrainrot = nil
-local isRunning = false
-local lastJobId = nil
-local isJoining = false
-local processedJobs = {} -- Track which jobs we've already attempted
-
--- Wait for player and GUI to fully load
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
-wait(1)
-
--- Remove any existing instances
-pcall(function()
-    local existing = playerGui:FindFirstChild("NexaJoiner")
-    if existing then existing:Destroy() end
-    
-    local existingBg = playerGui:FindFirstChild("BackgroundStatus")
-    if existingBg then existingBg:Destroy() end
-end)
-
-wait(0.5)
-
--- Main GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "NexaJoiner"
-screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.DisplayOrder = 100
-screenGui.Parent = playerGui
-
--- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 450, 0, 600)
-mainFrame.Position = UDim2.new(0.5, -225, 0.5, -300)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 35, 25)
-mainFrame.BorderSizePixel = 0
-mainFrame.ZIndex = 1000
-mainFrame.Visible = true
-mainFrame.Parent = screenGui
-
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 12)
-uiCorner.Parent = mainFrame
-
--- Make draggable
-local dragging, dragInput, dragStart, startPos
-local function updateDrag(input)
-    local delta = input.Position - dragStart
-    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
-
-mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        updateDrag(input)
-    end
-end)
-
--- Title Bar
-local titleBar = Instance.new("Frame")
-titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, 50)
-titleBar.BackgroundColor3 = Color3.fromRGB(35, 200, 100)
-titleBar.BorderSizePixel = 0
-titleBar.ZIndex = 1001
-titleBar.Parent = mainFrame
-
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
-titleCorner.Parent = titleBar
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -60, 1, 0)
-titleLabel.Position = UDim2.new(0, 10, 0, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "NEXA JOINER"
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 24
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.ZIndex = 1002
-titleLabel.Parent = titleBar
-
--- Close Button
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 40, 0, 40)
-closeButton.Position = UDim2.new(1, -45, 0, 5)
-closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-closeButton.Text = "X"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.Font = Enum.Font.GothamBold
-closeButton.TextSize = 20
-closeButton.ZIndex = 1002
-closeButton.Parent = titleBar
-
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 8)
-closeCorner.Parent = closeButton
-
-closeButton.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-    local bgGui = playerGui:FindFirstChild("BackgroundStatus")
-    if bgGui then bgGui:Destroy() end
-end)
-
--- Info Label
-local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -40, 0, 40)
-infoLabel.Position = UDim2.new(0, 20, 0, 60)
-infoLabel.BackgroundColor3 = Color3.fromRGB(35, 45, 35)
-infoLabel.Text = "🖥️ Desktop App: Connecting..."
-infoLabel.TextColor3 = Color3.fromRGB(255, 170, 100)
-infoLabel.Font = Enum.Font.GothamBold
-infoLabel.TextSize = 12
-infoLabel.ZIndex = 1001
-infoLabel.Parent = mainFrame
-
-local infoCorner = Instance.new("UICorner")
-infoCorner.CornerRadius = UDim.new(0, 8)
-infoCorner.Parent = infoLabel
-
--- Mode Buttons Row 1
-local autoButton = Instance.new("TextButton")
-autoButton.Size = UDim2.new(1, -40, 0, 50)
-autoButton.Position = UDim2.new(0, 20, 0, 120)
-autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
-autoButton.Text = "🎯 AUTO JOIN (Best Job)"
-autoButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoButton.Font = Enum.Font.GothamBold
-autoButton.TextSize = 16
-autoButton.ZIndex = 1001
-autoButton.Parent = mainFrame
-
-local autoCorner = Instance.new("UICorner")
-autoCorner.CornerRadius = UDim.new(0, 8)
-autoCorner.Parent = autoButton
-
--- Mode Buttons Row 2
-local backgroundButton = Instance.new("TextButton")
-backgroundButton.Size = UDim2.new(1, -40, 0, 50)
-backgroundButton.Position = UDim2.new(0, 20, 0, 180)
-backgroundButton.BackgroundColor3 = Color3.fromRGB(80, 40, 180)
-backgroundButton.Text = "👻 BACKGROUND MODE"
-backgroundButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-backgroundButton.Font = Enum.Font.GothamBold
-backgroundButton.TextSize = 16
-backgroundButton.ZIndex = 1001
-backgroundButton.Parent = mainFrame
-
-local backgroundCorner = Instance.new("UICorner")
-backgroundCorner.CornerRadius = UDim.new(0, 8)
-backgroundCorner.Parent = backgroundButton
-
-local stopButton = Instance.new("TextButton")
-stopButton.Size = UDim2.new(1, -40, 0, 40)
-stopButton.Position = UDim2.new(0, 20, 0, 240)
-stopButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-stopButton.Text = "⏹️ STOP ALL"
-stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-stopButton.Font = Enum.Font.GothamBold
-stopButton.TextSize = 14
-stopButton.ZIndex = 1001
-stopButton.Parent = mainFrame
-
-local stopCorner = Instance.new("UICorner")
-stopCorner.CornerRadius = UDim.new(0, 8)
-stopCorner.Parent = stopButton
-
--- Status Label
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -40, 0, 30)
-statusLabel.Position = UDim2.new(0, 20, 0, 295)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Status: Ready - Waiting for jobs..."
-statusLabel.TextColor3 = Color3.fromRGB(200, 255, 200)
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 12
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.ZIndex = 1001
-statusLabel.Parent = mainFrame
-
--- Job List Frame
-local jobListFrame = Instance.new("ScrollingFrame")
-jobListFrame.Size = UDim2.new(1, -40, 0, 260)
-jobListFrame.Position = UDim2.new(0, 20, 0, 330)
-jobListFrame.BackgroundColor3 = Color3.fromRGB(35, 45, 35)
-jobListFrame.BorderSizePixel = 0
-jobListFrame.ScrollBarThickness = 6
-jobListFrame.ZIndex = 1001
-jobListFrame.Parent = mainFrame
-
-local listCorner = Instance.new("UICorner")
-listCorner.CornerRadius = UDim.new(0, 8)
-listCorner.Parent = jobListFrame
-
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 5)
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Parent = jobListFrame
-
--- Background Status Indicator (separate GUI)
-local bgScreenGui = Instance.new("ScreenGui")
-bgScreenGui.Name = "BackgroundStatus"
-bgScreenGui.ResetOnSpawn = false
-bgScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-bgScreenGui.IgnoreGuiInset = true
-bgScreenGui.DisplayOrder = 99
-bgScreenGui.Parent = playerGui
-
-local bgStatusFrame = Instance.new("Frame")
-bgStatusFrame.Name = "StatusFrame"
-bgStatusFrame.Size = UDim2.new(0, 220, 0, 60)
-bgStatusFrame.Position = UDim2.new(1, -230, 1, -70)
-bgStatusFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 20)
-bgStatusFrame.BackgroundTransparency = 0.3
-bgStatusFrame.BorderSizePixel = 0
-bgStatusFrame.ZIndex = 999
-bgStatusFrame.Active = false
-bgStatusFrame.Visible = false
-bgStatusFrame.Parent = bgScreenGui
-
-local bgStatusCorner = Instance.new("UICorner")
-bgStatusCorner.CornerRadius = UDim.new(0, 8)
-bgStatusCorner.Parent = bgStatusFrame
-
-local bgStatusLabel = Instance.new("TextLabel")
-bgStatusLabel.Size = UDim2.new(1, -10, 0.5, 0)
-bgStatusLabel.Position = UDim2.new(0, 5, 0, 5)
-bgStatusLabel.BackgroundTransparency = 1
-bgStatusLabel.Text = "🟢 Background: Active"
-bgStatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-bgStatusLabel.Font = Enum.Font.GothamBold
-bgStatusLabel.TextSize = 11
-bgStatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-bgStatusLabel.ZIndex = 1000
-bgStatusLabel.Active = false
-bgStatusLabel.Parent = bgStatusFrame
-
--- Current job label in background status
-local bgCurrentJobLabel = Instance.new("TextLabel")
-bgCurrentJobLabel.Size = UDim2.new(1, -10, 0.5, -5)
-bgCurrentJobLabel.Position = UDim2.new(0, 5, 0.5, 0)
-bgCurrentJobLabel.BackgroundTransparency = 1
-bgCurrentJobLabel.Text = "Waiting for jobs..."
-bgCurrentJobLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-bgCurrentJobLabel.Font = Enum.Font.Gotham
-bgCurrentJobLabel.TextSize = 9
-bgCurrentJobLabel.TextXAlignment = Enum.TextXAlignment.Left
-bgCurrentJobLabel.TextTruncate = Enum.TextTruncate.AtEnd
-bgCurrentJobLabel.ZIndex = 1000
-bgCurrentJobLabel.Active = false
-bgCurrentJobLabel.Parent = bgStatusFrame
-
--- Functions
-local function updateStatus(text)
-    statusLabel.Text = "Status: " .. text
-    print("[Nexa] " .. text)
-end
-
-local function updateBackgroundStatus(text, color)
-    bgStatusLabel.Text = text
-    bgStatusLabel.TextColor3 = color or Color3.fromRGB(100, 255, 100)
-end
-
-local function updateBackgroundJob(name, money)
-    bgCurrentJobLabel.Text = name .. " - " .. money
-end
-
-local function formatMoney(amount)
-    if amount >= 1000000 then
-        return string.format("%.1fM", amount / 1000000)
-    elseif amount >= 1000 then
-        return string.format("%.1fK", amount / 1000)
-    else
-        return tostring(amount)
-    end
-end
-
-local function createJobEntry(brainrotName, money, jobId, players)
-    local entry = Instance.new("Frame")
-    entry.Size = UDim2.new(1, -10, 0, 70)
-    entry.BackgroundColor3 = Color3.fromRGB(45, 55, 45)
-    entry.BorderSizePixel = 0
-    entry.ZIndex = 1002
-    entry.Parent = jobListFrame
-    
-    local entryCorner = Instance.new("UICorner")
-    entryCorner.CornerRadius = UDim.new(0, 6)
-    entryCorner.Parent = entry
-    
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, -20, 0, 20)
-    nameLabel.Position = UDim2.new(0, 10, 0, 5)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = brainrotName
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 13
-    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
-    nameLabel.ZIndex = 1003
-    nameLabel.Parent = entry
-    
-    local moneyLabel = Instance.new("TextLabel")
-    moneyLabel.Size = UDim2.new(0.5, -10, 0, 18)
-    moneyLabel.Position = UDim2.new(0, 10, 0, 28)
-    moneyLabel.BackgroundTransparency = 1
-    moneyLabel.Text = "💰 " .. money
-    moneyLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-    moneyLabel.Font = Enum.Font.GothamBold
-    moneyLabel.TextSize = 12
-    moneyLabel.TextXAlignment = Enum.TextXAlignment.Left
-    moneyLabel.ZIndex = 1003
-    moneyLabel.Parent = entry
-    
-    local playersLabel = Instance.new("TextLabel")
-    playersLabel.Size = UDim2.new(0.5, -10, 0, 18)
-    playersLabel.Position = UDim2.new(0.5, 0, 0, 28)
-    playersLabel.BackgroundTransparency = 1
-    playersLabel.Text = "👥 " .. players .. "/8"
-    playersLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-    playersLabel.Font = Enum.Font.Gotham
-    playersLabel.TextSize = 11
-    playersLabel.TextXAlignment = Enum.TextXAlignment.Right
-    playersLabel.ZIndex = 1003
-    playersLabel.Parent = entry
-    
-    local jobIdLabel = Instance.new("TextLabel")
-    jobIdLabel.Size = UDim2.new(1, -20, 0, 16)
-    jobIdLabel.Position = UDim2.new(0, 10, 0, 48)
-    jobIdLabel.BackgroundTransparency = 1
-    jobIdLabel.Text = "🆔 " .. jobId:sub(1, 30) .. "..."
-    jobIdLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-    jobIdLabel.Font = Enum.Font.Code
-    jobIdLabel.TextSize = 8
-    jobIdLabel.TextXAlignment = Enum.TextXAlignment.Left
-    jobIdLabel.TextTruncate = Enum.TextTruncate.AtEnd
-    jobIdLabel.ZIndex = 1003
-    jobIdLabel.Parent = entry
-    
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 1, 0)
-    button.BackgroundTransparency = 1
-    button.Text = ""
-    button.ZIndex = 1004
-    button.Parent = entry
-    
-    button.MouseButton1Click:Connect(function()
-        selectedBrainrot = {name = brainrotName, money = money, jobId = jobId, players = players}
-        updateStatus("Selected: " .. brainrotName .. " - Click AUTO to join!")
-        
-        for _, child in pairs(jobListFrame:GetChildren()) do
-            if child:IsA("Frame") then
-                child.BackgroundColor3 = Color3.fromRGB(45, 55, 45)
-            end
-        end
-        entry.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
-    end)
-    
-    return entry
-end
-
-local function directTeleportToJob(jobId, jobName, jobMoney)
-    if isJoining then
-        updateStatus("Already joining a job, please wait...")
-        return
-    end
-    
-    processedJobs[jobId] = true
-    isJoining = true
-    
-    updateStatus("🔄 Teleporting to: " .. jobName)
-    
-    if currentMode == "background" then
-        updateBackgroundStatus("🔄 Joining...", Color3.fromRGB(255, 200, 100))
-        updateBackgroundJob(jobName, jobMoney)
-    end
-    
-    print("[Nexa] Teleporting to Job ID: " .. jobId)
-    print("[Nexa] Job: " .. jobName .. " - " .. jobMoney)
-    
-    wait(0.5)
-    
-    local success, errorMsg = pcall(function()
-        TeleportService:TeleportToPlaceInstance(GAME_ID, jobId, player)
-    end)
-    
-    if not success then
-        updateStatus("❌ Teleport failed: " .. tostring(errorMsg))
-        print("[Nexa] Teleport Error:", errorMsg)
-        
-        if currentMode == "background" then
-            updateBackgroundStatus("❌ Join Failed", Color3.fromRGB(255, 100, 100))
-        end
-        
-        wait(3)
-        isJoining = false
-        
-        if currentMode == "background" then
-            updateBackgroundStatus("🟢 Background: Active", Color3.fromRGB(100, 255, 100))
-            updateBackgroundJob("Waiting for next job...", "")
-        end
-    end
-end
-
-local function parseMoneyPerSec(moneyText)
-    if not moneyText then return 0 end
-    local amount, multiplier = moneyText:match("%$?([%d%.]+)([MKmkBb]?)")
-    if not amount then return 0 end
-    
-    local value = tonumber(amount) or 0
-    multiplier = multiplier or ""
-    
-    if multiplier:upper() == "M" then
-        value = value * 1000000
-    elseif multiplier:upper() == "K" then
-        value = value * 1000
-    elseif multiplier:upper() == "B" then
-        value = value * 1000000000
-    end
-    
-    return value
-end
-
-local function addJobLog(jobData)
-    for i, log in pairs(jobLogs) do
-        if log.jobId == jobData.jobId then
-            jobLogs[i] = jobData
-            for _, child in pairs(jobListFrame:GetChildren()) do
-                if child:IsA("Frame") then
-                    child:Destroy()
-                end
-            end
-            for _, log in pairs(jobLogs) do
-                createJobEntry(log.name, log.money, log.jobId, log.players)
-            end
-            return
-        end
-    end
-    
-    table.insert(jobLogs, 1, jobData)
-    createJobEntry(jobData.name, jobData.money, jobData.jobId, jobData.players)
-    
-    jobListFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
-end
-
-local function fetchJobsFromDesktop()
-    spawn(function()
-        -- Initial connection test
-        local connectionTested = false
-        
-        while wait(CHECK_INTERVAL) do
-            local success, result = pcall(function()
-                local response = HttpService:GetAsync(JOB_DATA_URL)
-                local jobs = HttpService:JSONDecode(response)
-                
-                -- Connection successful
-                if not connectionTested then
-                    connectionTested = true
-                    print("[Nexa] Successfully connected to Desktop App!")
-                end
-                
-                if jobs and #jobs > 0 then
-                    infoLabel.Text = "🖥️ Desktop App: Connected (" .. #jobs .. " jobs)"
-                    infoLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-                    
-                    if currentMode == "background" then
-                        updateBackgroundStatus("📡 Desktop: " .. #jobs .. " jobs", Color3.fromRGB(100, 255, 100))
-                    end
-                    
-                    local bestJob = nil
-                    local bestMoney = 0
-                    
-                    for _, job in ipairs(jobs) do
-                        if job.name and job.jobId and job.money then
-                            local money = parseMoneyPerSec(job.money)
-                            
-                            addJobLog({
-                                name = job.name,
-                                money = job.money,
-                                jobId = job.jobId,
-                                players = job.players or "0"
-                            })
-                            
-                            if money > bestMoney then
-                                bestMoney = money
-                                bestJob = job
-                            end
-                        end
-                    end
-                    
-                    if (currentMode == "auto" or currentMode == "background") and bestJob and not isJoining then
-                        if not processedJobs[bestJob.jobId] then
-                            print("[Nexa] New best job:", bestJob.name, "-", bestJob.money)
-                            
-                            spawn(function()
-                                wait(0.5)
-                                directTeleportToJob(bestJob.jobId, bestJob.name, bestJob.money)
-                            end)
-                        end
-                    end
-                else
-                    infoLabel.Text = "🖥️ Desktop App: Connected (0 jobs)"
-                    infoLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
-                    
-                    if currentMode == "background" then
-                        updateBackgroundStatus("⏸️ Desktop: No jobs", Color3.fromRGB(255, 200, 100))
-                    end
-                end
-            end)
-            
-            if not success then
-                local errorMsg = tostring(result)
-                
-                if errorMsg:find("Http requests are not enabled") then
-                    infoLabel.Text = "❌ Enable HttpService in Game Settings!"
-                    infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-                    updateStatus("❌ HttpService not enabled! Check game settings")
-                    print("[Nexa] ERROR: HttpService is not enabled!")
-                    print("[Nexa] Go to Game Settings > Security > Enable HTTP Requests")
-                elseif errorMsg:find("ConnectFail") or errorMsg:find("TimedOut") then
-                    infoLabel.Text = "🖥️ Desktop App: Not Running"
-                    infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-                    
-                    if not connectionTested then
-                        print("[Nexa] Cannot connect to Desktop App")
-                        print("[Nexa] Make sure the Python app is running!")
-                        print("[Nexa] Server should be at: " .. JOB_DATA_URL)
-                    end
-                else
-                    infoLabel.Text = "⚠️ Connection Error"
-                    infoLabel.TextColor3 = Color3.fromRGB(255, 150, 100)
-                    print("[Nexa] Error:", errorMsg)
-                end
-                
-                if currentMode == "background" then
-                    updateBackgroundStatus("🔴 Desktop: Offline", Color3.fromRGB(255, 100, 100))
-                end
-            end
-        end
-    end)
-end
-
--- Button Handlers
-autoButton.MouseButton1Click:Connect(function()
-    if currentMode == "auto" then
-        isRunning = false
-        currentMode = "manual"
-        autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
-        bgStatusFrame.Visible = false
-        mainFrame.Visible = true
-        updateStatus("⏹️ Auto Join OFF")
-        return
-    end
-    
-    isRunning = true
-    currentMode = "auto"
-    autoButton.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
-    backgroundButton.BackgroundColor3 = Color3.fromRGB(80, 40, 180)
-    bgStatusFrame.Visible = false
-    mainFrame.Visible = true
-    updateStatus("🟢 Auto Join ON - Will join best job!")
-end)
-
-backgroundButton.MouseButton1Click:Connect(function()
-    if currentMode == "background" then
-        isRunning = false
-        currentMode = "manual"
-        backgroundButton.BackgroundColor3 = Color3.fromRGB(80, 40, 180)
-        bgStatusFrame.Visible = false
-        mainFrame.Visible = true
-        updateStatus("⏹️ Background OFF")
-        return
-    end
-    
-    isRunning = true
-    currentMode = "background"
-    backgroundButton.BackgroundColor3 = Color3.fromRGB(120, 60, 200)
-    autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
-    bgStatusFrame.Visible = true
-    mainFrame.Visible = false
-    updateBackgroundStatus("🟢 Background: Active", Color3.fromRGB(100, 255, 100))
-    updateBackgroundJob("Waiting for jobs...", "")
-    updateStatus("👻 Background Mode - Auto-joining best jobs")
-end)
-
-stopButton.MouseButton1Click:Connect(function()
-    isRunning = false
-    currentMode = "manual"
-    selectedBrainrot = nil
-    autoButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
-    backgroundButton.BackgroundColor3 = Color3.fromRGB(80, 40, 180)
-    bgStatusFrame.Visible = false
-    mainFrame.Visible = true
-    updateStatus("⏹️ All stopped")
-    
-    for _, child in pairs(jobListFrame:GetChildren()) do
-        if child:IsA("Frame") then
-            child.BackgroundColor3 = Color3.fromRGB(45, 55, 45)
-        end
-    end
-end)
-
--- Keep background status in fixed position
-RunService.Heartbeat:Connect(function()
-    if bgStatusFrame.Position ~= UDim2.new(1, -230, 1, -70) then
-        bgStatusFrame.Position = UDim2.new(1, -230, 1, -70)
-    end
-end)
-
--- Start fetching jobs
-fetchJobsFromDesktop()
-
-print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("✅ Nexa Joiner Loaded!")
-print("🖥️  Monitoring Python Desktop App...")
-print("🚀 Direct teleport - No Chilli Hub needed")
-print("📋 Reads from: " .. JOB_DATA_URL)
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
