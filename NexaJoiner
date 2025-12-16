@@ -6,7 +6,7 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 -- CHANGE THIS URL TO YOUR PYTHON APP URL
-local JOB_DATA_URL = "http://127.0.0.1:8080/jobs"
+local JOB_DATA_URL = "http://192.168.68.54:8080/jobs"
 
 local CHECK_INTERVAL = 3
 
