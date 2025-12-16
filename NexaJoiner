@@ -1,282 +1,76 @@
--- NEXA - Simple Job Display
--- Shows job names and money - that's it!
--- Works on ALL executors with HttpService
+-- CONNECTION TEST SCRIPT
+-- Run this first to test if the connection works
 
 local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
 
--- CHANGE THIS URL TO YOUR PYTHON APP URL
-local JOB_DATA_URL = "http://192.168.68.63:8080/jobs"
-
-local CHECK_INTERVAL = 3
-
--- Wait for player
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
-wait(1)
-
--- Remove old GUI
-pcall(function()
-    if playerGui:FindFirstChild("Nexa") then 
-        playerGui.Nexa:Destroy() 
-    end
-end)
-
-wait(0.5)
+-- CHANGE THIS URL
+local TEST_URL = "http://192.168.68.63:8080/jobs"
 
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("✅ NEXA Loading...")
+print("🔧 NEXA CONNECTION TEST")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("Testing URL: " .. TEST_URL)
+print("")
 
--- Main GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "Nexa"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
+-- Test 1: Check if HttpService works
+print("Test 1: HttpService Enabled")
+local httpEnabled = pcall(function()
+    HttpService:GetAsync("https://google.com")
+end)
 
--- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 400, 0, 500)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 30)
-mainFrame.BorderSizePixel = 0
-mainFrame.Parent = screenGui
-
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 12)
-mainCorner.Parent = mainFrame
-
--- Make draggable
-local dragging, dragInput, dragStart, startPos
-
-local function updateDrag(input)
-    local delta = input.Position - dragStart
-    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+if httpEnabled then
+    print("✅ HttpService is working!")
+else
+    print("❌ HttpService is NOT enabled!")
+    print("💡 Solution: Enable HTTP in game settings")
+    print("   Home > Game Settings > Security > Allow HTTP Requests")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    return
 end
 
-mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
+print("")
+
+-- Test 2: Try to connect to your server
+print("Test 2: Connecting to Desktop App")
+local success, result = pcall(function()
+    return HttpService:GetAsync(TEST_URL, true)
 end)
 
-mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        updateDrag(input)
-    end
-end)
-
--- Title Bar
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 50)
-titleBar.BackgroundColor3 = Color3.fromRGB(0, 200, 150)
-titleBar.BorderSizePixel = 0
-titleBar.Parent = mainFrame
-
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
-titleCorner.Parent = titleBar
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -50, 1, 0)
-titleLabel.Position = UDim2.new(0, 10, 0, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "NEXA"
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 22
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = titleBar
-
--- Close Button
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 35, 0, 35)
-closeButton.Position = UDim2.new(1, -40, 0, 8)
-closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-closeButton.Text = "X"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.Font = Enum.Font.GothamBold
-closeButton.TextSize = 18
-closeButton.Parent = titleBar
-
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 6)
-closeCorner.Parent = closeButton
-
-closeButton.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-end)
-
--- Status Label
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -30, 0, 35)
-statusLabel.Position = UDim2.new(0, 15, 0, 60)
-statusLabel.BackgroundColor3 = Color3.fromRGB(30, 35, 40)
-statusLabel.Text = "🔄 Connecting..."
-statusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
-statusLabel.Font = Enum.Font.GothamBold
-statusLabel.TextSize = 11
-statusLabel.Parent = mainFrame
-
-local statusCorner = Instance.new("UICorner")
-statusCorner.CornerRadius = UDim.new(0, 8)
-statusCorner.Parent = statusLabel
-
--- Job List Title
-local listTitle = Instance.new("TextLabel")
-listTitle.Size = UDim2.new(1, -30, 0, 25)
-listTitle.Position = UDim2.new(0, 15, 0, 105)
-listTitle.BackgroundTransparency = 1
-listTitle.Text = "📋 Jobs:"
-listTitle.TextColor3 = Color3.fromRGB(150, 200, 255)
-listTitle.Font = Enum.Font.GothamBold
-listTitle.TextSize = 13
-listTitle.TextXAlignment = Enum.TextXAlignment.Left
-listTitle.Parent = mainFrame
-
--- Job List
-local jobList = Instance.new("ScrollingFrame")
-jobList.Size = UDim2.new(1, -30, 0, 355)
-jobList.Position = UDim2.new(0, 15, 0, 135)
-jobList.BackgroundColor3 = Color3.fromRGB(30, 35, 40)
-jobList.BorderSizePixel = 0
-jobList.ScrollBarThickness = 6
-jobList.Parent = mainFrame
-
-local listCorner = Instance.new("UICorner")
-listCorner.CornerRadius = UDim.new(0, 8)
-listCorner.Parent = jobList
-
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 8)
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Parent = jobList
-
--- Functions
-local function clearJobList()
-    for _, child in pairs(jobList:GetChildren()) do
-        if child:IsA("Frame") then
-            child:Destroy()
-        end
-    end
-end
-
-local function createJobEntry(jobName, money)
-    local entry = Instance.new("Frame")
-    entry.Size = UDim2.new(1, -10, 0, 60)
-    entry.BackgroundColor3 = Color3.fromRGB(40, 50, 60)
-    entry.BorderSizePixel = 0
-    entry.Parent = jobList
+if success then
+    print("✅ CONNECTION SUCCESS!")
+    print("")
+    print("Response received:")
+    print(result:sub(1, 200)) -- Show first 200 chars
+    print("")
     
-    local entryCorner = Instance.new("UICorner")
-    entryCorner.CornerRadius = UDim.new(0, 8)
-    entryCorner.Parent = entry
-    
-    -- Job Name
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, -20, 0, 28)
-    nameLabel.Position = UDim2.new(0, 10, 0, 8)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = jobName
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 14
-    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
-    nameLabel.Parent = entry
-    
-    -- Money
-    local moneyLabel = Instance.new("TextLabel")
-    moneyLabel.Size = UDim2.new(1, -20, 0, 20)
-    moneyLabel.Position = UDim2.new(0, 10, 0, 36)
-    moneyLabel.BackgroundTransparency = 1
-    moneyLabel.Text = "💰 " .. money
-    moneyLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
-    moneyLabel.Font = Enum.Font.GothamBold
-    moneyLabel.TextSize = 13
-    moneyLabel.TextXAlignment = Enum.TextXAlignment.Left
-    moneyLabel.Parent = entry
-    
-    return entry
-end
-
-local function fetchJobs()
-    spawn(function()
-        local connectionAttempts = 0
-        
-        while wait(CHECK_INTERVAL) do
-            local success, result = pcall(function()
-                local response = HttpService:GetAsync(JOB_DATA_URL, true)
-                local jobs = HttpService:JSONDecode(response)
-                
-                connectionAttempts = 0  -- Reset on success
-                
-                if jobs and #jobs > 0 then
-                    statusLabel.Text = "🟢 Connected - " .. #jobs .. " jobs found"
-                    statusLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
-                    
-                    clearJobList()
-                    
-                    for _, job in ipairs(jobs) do
-                        if job.name and job.money then
-                            createJobEntry(job.name, job.money)
-                        end
-                    end
-                    
-                    jobList.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
-                else
-                    statusLabel.Text = "🟡 Connected - 0 jobs"
-                    statusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
-                    clearJobList()
-                end
-            end)
-            
-            if not success then
-                connectionAttempts = connectionAttempts + 1
-                
-                local errorMsg = tostring(result)
-                
-                if errorMsg:find("Http requests are not enabled") or errorMsg:find("HttpService") then
-                    statusLabel.Text = "❌ Enable HttpService in Game Settings!"
-                    statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-                    print("[Nexa] ERROR: HttpService not enabled!")
-                    print("[Nexa] Go to: Home > Game Settings > Security > Allow HTTP Requests")
-                elseif connectionAttempts <= 3 then
-                    statusLabel.Text = "🔄 Connecting... (" .. connectionAttempts .. "/3)"
-                    statusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
-                else
-                    statusLabel.Text = "🔴 Desktop App Not Running"
-                    statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-                    print("[Nexa] Cannot connect to: " .. JOB_DATA_URL)
-                    print("[Nexa] Make sure Python Desktop App is running!")
-                end
-                
-                clearJobList()
-            end
-        end
+    -- Try to parse JSON
+    local parseSuccess, jobs = pcall(function()
+        return HttpService:JSONDecode(result)
     end)
+    
+    if parseSuccess then
+        print("✅ JSON parsed successfully!")
+        print("Jobs found: " .. #jobs)
+        if #jobs > 0 then
+            print("")
+            print("First job:")
+            print("  Name: " .. (jobs[1].name or "N/A"))
+            print("  Money: " .. (jobs[1].money or "N/A"))
+        end
+    else
+        print("⚠️ Could not parse JSON")
+    end
+else
+    print("❌ CONNECTION FAILED!")
+    print("")
+    print("Error: " .. tostring(result))
+    print("")
+    print("💡 Possible Solutions:")
+    print("1. Make sure Python Desktop App is running")
+    print("2. Check if the URL is correct: " .. TEST_URL)
+    print("3. Try clicking 'Test Server' in Python app")
+    print("4. Check Windows Firewall - it might be blocking")
+    print("5. Try turning off antivirus temporarily")
 end
 
--- Start
-fetchJobs()
-
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("✅ NEXA Ready!")
-print("📡 Fetching from: " .. JOB_DATA_URL)
-print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
