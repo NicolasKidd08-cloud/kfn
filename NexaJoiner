@@ -6,9 +6,15 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 -- CHANGE THIS URL TO YOUR PYTHON APP URL
-local JOB_DATA_URL = "http://192.168.68.54:8080/jobs"
+-- Copy it from the green "COPY URL" button in the desktop app!
+local JOB_DATA_URL = "http://192.168.68.54:8080/jobs"  -- CHANGE THIS!
 
 local CHECK_INTERVAL = 3
+
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("✅ NEXA Loading...")
+print("📡 URL: " .. JOB_DATA_URL)
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 -- Wait for player
 local player = Players.LocalPlayer
