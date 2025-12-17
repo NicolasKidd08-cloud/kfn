@@ -1,343 +1,202 @@
-import tkinter as tk
-from tkinter import scrolledtext
-import requests
-import json
-import threading
-import time
-from datetime import datetime
-import re
-import os
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse
+-- NEXA JOB MONITOR - HTTP Version
+-- Simple display-only script
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
-JOBS_FILE = os.path.join(APP_DIR, "nexa_jobs.json")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
 
-# HARDCODED CREDENTIALS
-DISCORD_TOKEN = "MTAxMzc4MTg3Njg0ODIwMTc5OQ.GVaH2v.D9pMCY8apYHUYIxma8rrFX3JGWTrpsra5Qleig"
-CHANNEL_ID = "1401775181025775738"
+local JOB_DATA_URL = "http://192.168.68.54:8080/jobs"
+local CHECK_INTERVAL = 3
 
-class JobHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path in ['/jobs', '/nexa_jobs.json']:
-            try:
-                if os.path.exists(JOBS_FILE):
-                    with open(JOBS_FILE, 'r') as f:
-                        data = f.read()
-                else:
-                    data = '[]'
-                
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-                self.end_headers()
-                self.wfile.write(data.encode())
-            except Exception as e:
-                self.send_error(500)
-        else:
-            self.send_error(404)
-    
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        self.end_headers()
-    
-    def log_message(self, format, *args):
-        pass
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("✅ NEXA Loading...")
+print("📡 URL: " .. JOB_DATA_URL)
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-class App:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("NEXA MONITOR")
-        self.root.geometry("800x650")
-        self.root.configure(bg="#0f1419")
-        self.root.resizable(False, False)
-        
-        self.min_money = 25.0
-        self.blacklist = []  # User can add their own
-        self.job_logs = []
-        self.is_running = False
-        self.last_message_id = None
-        self.seen_jobs = set()
-        
-        self.http_server = None
-        self.server_port = 8080
-        self.server_running = False
-        
-        self.create_ui()
-        
-        # Start server immediately
-        threading.Thread(target=self.start_http_server, daemon=True).start()
-    
-    def create_ui(self):
-        # Header
-        header = tk.Frame(self.root, bg="#00d9ff", height=80)
-        header.pack(fill=tk.X)
-        header.pack_propagate(False)
-        
-        tk.Label(header, text="NEXA", 
-                font=("Arial", 32, "bold"), 
-                bg="#00d9ff", fg="#0f1419").pack(side=tk.LEFT, padx=30, pady=20)
-        
-        tk.Label(header, text="JOB MONITOR", 
-                font=("Arial", 16), 
-                bg="#00d9ff", fg="#0f1419").pack(side=tk.LEFT, pady=20)
-        
-        self.status_indicator = tk.Label(header, text="●", 
-                                         font=("Arial", 24), 
-                                         bg="#00d9ff", fg="#ff4444")
-        self.status_indicator.pack(side=tk.RIGHT, padx=30)
-        
-        # Server Info Card
-        server_card = tk.Frame(self.root, bg="#1a1f26")
-        server_card.pack(fill=tk.X, padx=30, pady=20)
-        
-        tk.Label(server_card, text="🌐 SERVER STATUS", 
-                font=("Arial", 12, "bold"), 
-                bg="#1a1f26", fg="#00d9ff").pack(anchor=tk.W, padx=20, pady=(15, 5))
-        
-        self.server_label = tk.Label(server_card, text="Starting...", 
-                                     font=("Arial", 10), 
-                                     bg="#1a1f26", fg="#ffffff")
-        self.server_label.pack(anchor=tk.W, padx=20, pady=(0, 5))
-        
-        self.url_label = tk.Label(server_card, text="URL: Initializing...", 
-                                  font=("Courier", 9), 
-                                  bg="#1a1f26", fg="#00d9ff")
-        self.url_label.pack(anchor=tk.W, padx=20, pady=(0, 15))
-        
-        # Control Panel
-        control_frame = tk.Frame(self.root, bg="#0f1419")
-        control_frame.pack(fill=tk.X, padx=30, pady=10)
-        
-        # Min Money Control
-        money_frame = tk.Frame(control_frame, bg="#1a1f26")
-        money_frame.pack(side=tk.LEFT, padx=(0, 15))
-        
-        tk.Label(money_frame, text="Min Money (M):", 
-                font=("Arial", 10, "bold"), 
-                bg="#1a1f26", fg="#ffffff").pack(side=tk.LEFT, padx=10, pady=10)
-        
-        self.min_entry = tk.Entry(money_frame, width=8, 
-                                  font=("Arial", 10), 
-                                  bg="#0f1419", fg="#ffffff",
-                                  insertbackground="#ffffff")
-        self.min_entry.insert(0, "25")
-        self.min_entry.pack(side=tk.LEFT, padx=(0, 10), pady=10)
-        
-        # Buttons
-        self.start_btn = tk.Button(control_frame, text="▶ START", 
-                                   command=self.start_monitoring,
-                                   bg="#00d9ff", fg="#0f1419",
-                                   font=("Arial", 11, "bold"),
-                                   width=12, height=2,
-                                   relief=tk.FLAT, cursor="hand2",
-                                   activebackground="#00b8d4")
-        self.start_btn.pack(side=tk.LEFT, padx=5)
-        
-        self.stop_btn = tk.Button(control_frame, text="⏹ STOP", 
-                                  command=self.stop_monitoring,
-                                  bg="#ff4444", fg="#ffffff",
-                                  font=("Arial", 11, "bold"),
-                                  width=12, height=2,
-                                  relief=tk.FLAT, cursor="hand2",
-                                  state=tk.DISABLED,
-                                  activebackground="#cc0000")
-        self.stop_btn.pack(side=tk.LEFT, padx=5)
-        
-        clear_btn = tk.Button(control_frame, text="🗑 CLEAR", 
-                             command=self.clear_logs,
-                             bg="#ff9800", fg="#ffffff",
-                             font=("Arial", 11, "bold"),
-                             width=12, height=2,
-                             relief=tk.FLAT, cursor="hand2",
-                             activebackground="#f57c00")
-        clear_btn.pack(side=tk.LEFT, padx=5)
-        
-        # Logs Section
-        logs_frame = tk.Frame(self.root, bg="#1a1f26")
-        logs_frame.pack(fill=tk.BOTH, expand=True, padx=30, pady=(10, 20))
-        
-        tk.Label(logs_frame, text="📋 ACTIVITY LOG", 
-                font=("Arial", 12, "bold"), 
-                bg="#1a1f26", fg="#00d9ff").pack(anchor=tk.W, padx=20, pady=(15, 10))
-        
-        self.logs = scrolledtext.ScrolledText(logs_frame, 
-                                              bg="#0f1419", fg="#00ff88",
-                                              font=("Courier", 9),
-                                              height=12,
-                                              relief=tk.FLAT,
-                                              padx=15, pady=15)
-        self.logs.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 15))
-        
-        self.logs.tag_config("green", foreground="#00ff88")
-        self.logs.tag_config("red", foreground="#ff6b6b")
-        self.logs.tag_config("yellow", foreground="#ffd93d")
-        self.logs.tag_config("cyan", foreground="#00d9ff")
-        
-        # Footer Stats
-        self.stats = tk.Label(self.root, text="Jobs: 0 | Status: Idle", 
-                             bg="#1a1f26", fg="#ffffff", 
-                             font=("Arial", 10), pady=12)
-        self.stats.pack(fill=tk.X, side=tk.BOTTOM)
-        
-        # Initial log
-        self.log("✨ NEXA Monitor initialized", "cyan")
-        self.log("🔐 Using configured Discord credentials", "green")
-    
-    def start_http_server(self):
-        try:
-            self.http_server = HTTPServer(('0.0.0.0', self.server_port), JobHandler)
-            self.server_running = True
-            
-            # Get actual network IP (not localhost)
-            import socket
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            actual_ip = s.getsockname()[0]
-            s.close()
-            
-            url = f"http://{actual_ip}:{self.server_port}/jobs"
-            
-            self.root.after(0, lambda: self.server_label.config(
-                text="✅ Online", fg="#00ff88"))
-            self.root.after(0, lambda: self.url_label.config(
-                text=f"URL: {url}"))
-            self.root.after(0, lambda: self.status_indicator.config(fg="#00ff88"))
-            self.root.after(0, lambda: self.log("✅ HTTP Server started successfully", "green"))
-            self.root.after(0, lambda: self.log(f"📡 Server URL: {url}", "cyan"))
-            self.root.after(0, lambda: self.log(f"⚠️  Use this URL in Roblox script, NOT localhost!", "yellow"))
-            
-            if not os.path.exists(JOBS_FILE):
-                with open(JOBS_FILE, 'w') as f:
-                    f.write('[]')
-            
-            self.http_server.serve_forever()
-        except Exception as e:
-            self.server_running = False
-            self.root.after(0, lambda: self.server_label.config(
-                text=f"❌ Failed: {e}", fg="#ff6b6b"))
-            self.root.after(0, lambda: self.log(f"❌ Server error: {e}", "red"))
-    
-    def log(self, msg, color="green"):
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        self.logs.insert(tk.END, f"[{timestamp}] {msg}\n", color)
-        self.logs.see(tk.END)
-    
-    def parse_money(self, s):
-        m = re.search(r'\$?([0-9.]+)([KMB]?)', s)
-        if not m: return 0
-        v = float(m.group(1))
-        mult = m.group(2).upper()
-        if mult == 'M': return v * 1000000
-        if mult == 'K': return v * 1000
-        if mult == 'B': return v * 1000000000
-        return v
-    
-    def parse_embed(self, e):
-        d = {"name": None, "money": None, "players": None, "jobId": None}
-        if not e or "fields" not in e: return None
-        for f in e.get("fields", []):
-            n = f.get("name", "").lower()
-            v = f.get("value", "")
-            if "name" in n: d["name"] = v.strip()
-            elif "money" in n: d["money"] = v.strip()
-            elif "players" in n:
-                m = re.search(r'(\d+)/\d+', v)
-                if m: d["players"] = m.group(1)
-            elif "job id" in n and "mobile" in n: d["jobId"] = v.strip()
-        return d if d["name"] and d["money"] and d["jobId"] else None
-    
-    def fetch_messages(self):
-        try:
-            r = requests.get(
-                f"https://discord.com/api/v9/channels/{CHANNEL_ID}/messages?limit=5",
-                headers={"Authorization": DISCORD_TOKEN}, 
-                timeout=10
-            )
-            if r.status_code == 200: 
-                return r.json()
-            elif r.status_code == 401: 
-                self.log("❌ Invalid Discord token!", "red")
-            elif r.status_code == 403: 
-                self.log("❌ No access to channel!", "red")
-        except Exception as e:
-            self.log(f"❌ Connection error: {e}", "red")
-        return None
-    
-    def monitor_loop(self):
-        self.log("🚀 Monitoring started", "green")
-        
-        while self.is_running:
-            try:
-                try:
-                    self.min_money = float(self.min_entry.get().strip())
-                except:
-                    self.min_money = 25.0
-                
-                msgs = self.fetch_messages()
-                if msgs:
-                    for m in reversed(msgs):
-                        if not self.is_running: break
-                        mid = m.get("id")
-                        if self.last_message_id and int(mid) <= int(self.last_message_id): 
-                            continue
-                        self.last_message_id = mid
-                        
-                        for e in m.get("embeds", []):
-                            j = self.parse_embed(e)
-                            if j and j["jobId"] not in self.seen_jobs:
-                                # Check min money
-                                if self.parse_money(j["money"]) < self.min_money * 1000000:
-                                    continue
-                                
-                                self.seen_jobs.add(j["jobId"])
-                                self.job_logs.insert(0, j)
-                                
-                                self.log(f"🔥 NEW: {j['name']}", "red")
-                                self.log(f"   💰 {j['money']} | 👥 {j['players']}/8", "green")
-                                
-                                # Save to main file
-                                with open(JOBS_FILE, "w") as f:
-                                    json.dump(self.job_logs[:50], f)
-                                
-                                self.update_stats()
-                
-                time.sleep(2)
-            except Exception as e:
-                self.log(f"⚠️ Error: {e}", "red")
-                time.sleep(5)
-        
-        self.log("⏹️ Monitoring stopped", "yellow")
-    
-    def update_stats(self):
-        status = "Running" if self.is_running else "Idle"
-        self.stats.config(text=f"Jobs: {len(self.job_logs)} | Status: {status}")
-    
-    def start_monitoring(self):
-        self.is_running = True
-        self.start_btn.config(state=tk.DISABLED)
-        self.stop_btn.config(state=tk.NORMAL)
-        self.status_indicator.config(fg="#00ff88")
-        threading.Thread(target=self.monitor_loop, daemon=True).start()
-    
-    def stop_monitoring(self):
-        self.is_running = False
-        self.start_btn.config(state=tk.NORMAL)
-        self.stop_btn.config(state=tk.DISABLED)
-        self.status_indicator.config(fg="#ff4444")
-        self.update_stats()
-    
-    def clear_logs(self):
-        self.job_logs.clear()
-        self.seen_jobs.clear()
-        self.logs.delete(1.0, tk.END)
-        self.update_stats()
-        self.log("✅ Logs cleared", "green")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = App(root)
-    root.mainloop()
+wait(1)
+
+-- Remove old GUI
+pcall(function()
+    if playerGui:FindFirstChild("NexaSimple") then 
+        playerGui.NexaSimple:Destroy() 
+    end
+end)
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "NexaSimple"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Main Frame (Draggable)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 350, 0, 450)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+-- Make rounded corners
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
+
+-- Header
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 50)
+header.BackgroundColor3 = Color3.fromRGB(0, 217, 255)
+header.BorderSizePixel = 0
+header.Parent = mainFrame
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 12)
+headerCorner.Parent = header
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -20, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "NEXA JOB MONITOR"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 20
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+-- Status indicator
+local statusDot = Instance.new("TextLabel")
+statusDot.Size = UDim2.new(0, 30, 0, 30)
+statusDot.Position = UDim2.new(1, -40, 0.5, -15)
+statusDot.BackgroundTransparency = 1
+statusDot.Text = "●"
+statusDot.TextColor3 = Color3.fromRGB(255, 68, 68)
+statusDot.TextSize = 24
+statusDot.Font = Enum.Font.GothamBold
+statusDot.Parent = header
+
+-- Job list container
+local listContainer = Instance.new("ScrollingFrame")
+listContainer.Size = UDim2.new(1, -20, 1, -70)
+listContainer.Position = UDim2.new(0, 10, 0, 60)
+listContainer.BackgroundTransparency = 1
+listContainer.BorderSizePixel = 0
+listContainer.ScrollBarThickness = 6
+listContainer.ScrollBarImageColor3 = Color3.fromRGB(0, 217, 255)
+listContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+listContainer.Parent = mainFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 8)
+listLayout.Parent = listContainer
+
+-- Update canvas size when children change
+listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    listContainer.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- Function to create job entry
+local function createJobEntry(jobName, money)
+    local jobFrame = Instance.new("Frame")
+    jobFrame.Size = UDim2.new(1, -10, 0, 60)
+    jobFrame.BackgroundColor3 = Color3.fromRGB(26, 31, 38)
+    jobFrame.BorderSizePixel = 0
+    
+    local jobCorner = Instance.new("UICorner")
+    jobCorner.CornerRadius = UDim.new(0, 8)
+    jobCorner.Parent = jobFrame
+    
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, -20, 0, 30)
+    nameLabel.Position = UDim2.new(0, 10, 0, 5)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = jobName
+    nameLabel.TextColor3 = Color3.new(1, 1, 1)
+    nameLabel.TextSize = 14
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    nameLabel.Parent = jobFrame
+    
+    local moneyLabel = Instance.new("TextLabel")
+    moneyLabel.Size = UDim2.new(1, -20, 0, 20)
+    moneyLabel.Position = UDim2.new(0, 10, 0, 35)
+    moneyLabel.BackgroundTransparency = 1
+    moneyLabel.Text = "💰 " .. money
+    moneyLabel.TextColor3 = Color3.fromRGB(0, 255, 136)
+    moneyLabel.TextSize = 12
+    moneyLabel.Font = Enum.Font.Gotham
+    moneyLabel.TextXAlignment = Enum.TextXAlignment.Left
+    moneyLabel.Parent = jobFrame
+    
+    return jobFrame
+end
+
+-- Function to update job list
+local function updateJobList(jobs)
+    -- Clear existing jobs
+    for _, child in pairs(listContainer:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    
+    -- Add new jobs
+    if jobs and #jobs > 0 then
+        for i, job in ipairs(jobs) do
+            local jobEntry = createJobEntry(job.name or "Unknown", job.money or "$0")
+            jobEntry.LayoutOrder = i
+            jobEntry.Parent = listContainer
+        end
+    else
+        local noJobsLabel = Instance.new("TextLabel")
+        noJobsLabel.Size = UDim2.new(1, 0, 0, 100)
+        noJobsLabel.BackgroundTransparency = 1
+        noJobsLabel.Text = "No jobs available"
+        noJobsLabel.TextColor3 = Color3.fromRGB(136, 136, 136)
+        noJobsLabel.TextSize = 14
+        noJobsLabel.Font = Enum.Font.Gotham
+        noJobsLabel.Parent = listContainer
+    end
+end
+
+-- Function to fetch jobs
+local function fetchJobs()
+    local success, result = pcall(function()
+        return HttpService:GetAsync(JOB_DATA_URL, true)
+    end)
+    
+    if success then
+        local decodeSuccess, jobs = pcall(function()
+            return HttpService:JSONDecode(result)
+        end)
+        
+        if decodeSuccess then
+            statusDot.TextColor3 = Color3.fromRGB(0, 255, 136)
+            updateJobList(jobs)
+            return true
+        else
+            warn("[Nexa] Failed to decode JSON")
+            return false
+        end
+    else
+        warn("[Nexa] Connection failed: " .. tostring(result))
+        statusDot.TextColor3 = Color3.fromRGB(255, 68, 68)
+        return false
+    end
+end
+
+-- Main loop
+print("✅ NEXA Ready!")
+print("🔄 Fetching from: " .. JOB_DATA_URL)
+
+while wait(CHECK_INTERVAL) do
+    fetchJobs()
+end
+
