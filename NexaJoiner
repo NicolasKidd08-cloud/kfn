@@ -170,6 +170,9 @@ jobIdInput.Text = ""
 jobIdInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 jobIdInput.TextSize = 14
 jobIdInput.ClearTextOnFocus = false
+jobIdInput.TextXAlignment = Enum.TextXAlignment.Left
+jobIdInput.TextTruncate = Enum.TextTruncate.None
+jobIdInput.TextWrapped = false
 jobIdInput.Parent = jobIdFrame
 
 local inputCorner = Instance.new("UICorner")
@@ -426,6 +429,9 @@ local function attemptJoin()
 	
 	local jobId = jobIdInput.Text
 	
+	-- Trim whitespace
+	jobId = string.gsub(jobId, "^%s*(.-)%s*$", "%1")
+	
 	if jobId == "" or jobId == "Waiting for job..." then
 		-- Flash red
 		joinButton.BackgroundColor3 = Color3.fromRGB(255, 68, 68)
@@ -441,6 +447,10 @@ local function attemptJoin()
 	joinButton.Text = "..."
 	joinButton.BackgroundColor3 = Color3.fromRGB(255, 211, 61)
 	
+	print("NEXA: Attempting to join server...")
+	print("Place ID:", PLACE_ID)
+	print("Job ID:", jobId)
+	
 	-- Attempt to join
 	local success, errorMsg = pcall(function()
 		TeleportService:TeleportToPlaceInstance(PLACE_ID, jobId, player)
@@ -450,13 +460,27 @@ local function attemptJoin()
 		-- Show error
 		joinButton.Text = "ERR"
 		joinButton.BackgroundColor3 = Color3.fromRGB(255, 68, 68)
-		showNotification("❌ Failed to join server", Color3.fromRGB(255, 68, 68))
-		task.wait(1.5)
+		
+		-- Better error messages
+		local errorDisplay = "Failed to join"
+		if string.find(tostring(errorMsg), "not found") then
+			errorDisplay = "Server not found"
+		elseif string.find(tostring(errorMsg), "full") then
+			errorDisplay = "Server full"
+		elseif string.find(tostring(errorMsg), "Invalid") then
+			errorDisplay = "Invalid Job ID"
+		end
+		
+		showNotification("❌ " .. errorDisplay, Color3.fromRGB(255, 68, 68))
+		print("NEXA: Join failed -", errorMsg)
+		task.wait(2)
 		joinButton.Text = "JOIN"
 		joinButton.BackgroundColor3 = Color3.fromRGB(0, 217, 255)
 		joining = false
-		warn("NEXA: Failed to join -", errorMsg)
+	else
+		print("NEXA: Teleporting...")
 	end
+end
 end
 
 -- Event Handlers
