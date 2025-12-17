@@ -336,7 +336,10 @@ end
 
 -- ATTEMPT JOIN FUNCTION - Defined early so it can be called by auto-join
 local function attemptJoin()
-	if joining then return end
+	if joining then 
+		print("NEXA: Already attempting to join, please wait...")
+		return 
+	end
 	
 	local jobId = jobIdInput.Text
 	jobId = string.gsub(jobId, "^%s*(.-)%s*$", "%1")
@@ -382,7 +385,14 @@ local function attemptJoin()
 		joinButton.BackgroundColor3 = Color3.fromRGB(0, 217, 255)
 		joining = false
 	else
+		-- Successful teleport initiated
 		print("NEXA: Teleporting...")
+		-- Reset after a short delay in case teleport is delayed/cancelled
+		task.delay(5, function()
+			joining = false
+			joinButton.Text = "JOIN"
+			joinButton.BackgroundColor3 = Color3.fromRGB(0, 217, 255)
+		end)
 	end
 end
 
@@ -467,4 +477,5 @@ fetchJobs()
 
 print("✅ NEXA Job Monitor loaded successfully!")
 print("🌐 Connecting to desktop server at:", SERVER_URL)
+
 
