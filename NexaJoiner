@@ -314,7 +314,9 @@ local function createJobCard(jobData)
 			card.BackgroundColor3 = Color3.fromRGB(15, 20, 25)
 			
 			-- Auto-join after selecting
-			task.delay(0.5, attemptJoin)
+			task.delay(0.5, function()
+				attemptJoin()
+			end)
 		end
 	end)
 	
@@ -474,6 +476,7 @@ fetchJobs()
 
 print("✅ NEXA Job Monitor loaded successfully!")
 print("🌐 Connecting to desktop server at:", SERVER_URL)
+
 
 
 
