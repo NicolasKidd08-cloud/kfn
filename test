@@ -69,8 +69,17 @@ else
 end
 
 -- Connect to the event when a Brainrot is stolen
-game.ReplicatedStorage:WaitForChild("BrainrotStolen").OnClientEvent:Connect(function()
+local function onBrainrotStolen()
     if isTeleportEnabled then
         teleportToBase()
     end
-end)
+end
+
+-- Wait for the ReplicatedStorage and the event
+local replicatedStorage = game:WaitForChild("ReplicatedStorage")
+local brainrotStolenEvent = replicatedStorage:WaitForChild("BrainrotStolen", 5) -- Wait for 5 seconds
+if brainrotStolenEvent then
+    brainrotStolenEvent.OnClientEvent:Connect(onBrainrotStolen)
+else
+    warn("BrainrotStolen event not found in ReplicatedStorage!")
+end
