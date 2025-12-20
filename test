@@ -1,137 +1,165 @@
--- NEXA Complete Script - With Save Position Feature
--- Click "Save Position" to set your base location!
+-- NEXA Improved Script - Anti-Cheat Bypass Version
+-- Features: Tween Teleport (bypasses instant TP detection), State-Based Noclip, Fly Mode
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 -- Variables
-local basePosition = Vector3.new(0, 50, 0) -- Default spawn
+local player = Players.LocalPlayer
+local basePosition = Vector3.new(0, 50, 0)
 local isNoclipEnabled = false
 local isTeleportEnabled = false
+local isFlyEnabled = false
 local noclipConnection = nil
-local player = game.Players.LocalPlayer
+local flyConnection = nil
+local flySpeed = 50
+local autoTPInterval = 8 -- seconds between auto TPs (longer = safer)
 
--- Create GUI
+-- Fly variables
+local flyBodyGyro = nil
+local flyBodyVelocity = nil
+
+-- ═══════════════════════════════════════════════════════════════
+-- GUI CREATION
+-- ═══════════════════════════════════════════════════════════════
+
 local function createGui()
     local playerGui = player:WaitForChild("PlayerGui")
     
     -- Remove old GUI if exists
-    if playerGui:FindFirstChild("NexaTestCheats") then
-        playerGui:FindFirstChild("NexaTestCheats"):Destroy()
+    if playerGui:FindFirstChild("NexaImproved") then
+        playerGui:FindFirstChild("NexaImproved"):Destroy()
     end
     
     -- Create ScreenGui
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "NexaTestCheats"
+    screenGui.Name = "NexaImproved"
     screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.Parent = playerGui
     
     -- Main Frame
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 220, 0, 235)
-    mainFrame.Position = UDim2.new(0.5, -110, 0.1, 0)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    mainFrame.Size = UDim2.new(0, 240, 0, 380)
+    mainFrame.Position = UDim2.new(0.5, -120, 0.1, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
     mainFrame.BorderSizePixel = 0
     mainFrame.Parent = screenGui
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
+    corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = mainFrame
     
-    -- Title
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 35)
-    title.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
-    title.Text = "NEXA Cheats"
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 16
-    title.TextColor3 = Color3.fromRGB(20, 20, 20)
-    title.Parent = mainFrame
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0, 255, 136)
+    stroke.Thickness = 2
+    stroke.Parent = mainFrame
+    
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
+    titleBar.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
     
     local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 10)
-    titleCorner.Parent = title
+    titleCorner.CornerRadius = UDim.new(0, 12)
+    titleCorner.Parent = titleBar
     
-    -- Noclip Button
-    local noclipButton = Instance.new("TextButton")
-    noclipButton.Name = "NoclipButton"
-    noclipButton.Size = UDim2.new(0, 200, 0, 35)
-    noclipButton.Position = UDim2.new(0, 10, 0, 50)
-    noclipButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    noclipButton.Text = "Noclip: OFF"
-    noclipButton.Font = Enum.Font.GothamBold
-    noclipButton.TextSize = 13
-    noclipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    noclipButton.Parent = mainFrame
+    -- Fix bottom corners of title
+    local titleFix = Instance.new("Frame")
+    titleFix.Size = UDim2.new(1, 0, 0, 15)
+    titleFix.Position = UDim2.new(0, 0, 1, -15)
+    titleFix.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
+    titleFix.BorderSizePixel = 0
+    titleFix.Parent = titleBar
     
-    local noclipCorner = Instance.new("UICorner")
-    noclipCorner.CornerRadius = UDim.new(0, 8)
-    noclipCorner.Parent = noclipButton
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 1, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "⚡ NEXA PRO"
+    title.Font = Enum.Font.GothamBlack
+    title.TextSize = 18
+    title.TextColor3 = Color3.fromRGB(15, 15, 20)
+    title.Parent = titleBar
     
-    -- Auto-TP Button
-    local teleportButton = Instance.new("TextButton")
-    teleportButton.Name = "TeleportButton"
-    teleportButton.Size = UDim2.new(0, 200, 0, 35)
-    teleportButton.Position = UDim2.new(0, 10, 0, 95)
-    teleportButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    teleportButton.Text = "Auto-TP: OFF"
-    teleportButton.Font = Enum.Font.GothamBold
-    teleportButton.TextSize = 13
-    teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    teleportButton.Parent = mainFrame
+    -- Status indicator
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Name = "StatusLabel"
+    statusLabel.Size = UDim2.new(1, -20, 0, 20)
+    statusLabel.Position = UDim2.new(0, 10, 0, 48)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "🟢 Ready - Anti-Cheat Bypass Active"
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextSize = 10
+    statusLabel.TextColor3 = Color3.fromRGB(0, 255, 136)
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.Parent = mainFrame
     
-    local teleportCorner = Instance.new("UICorner")
-    teleportCorner.CornerRadius = UDim.new(0, 8)
-    teleportCorner.Parent = teleportButton
+    -- Button creation helper
+    local function createButton(name, text, yPos, color)
+        local btn = Instance.new("TextButton")
+        btn.Name = name
+        btn.Size = UDim2.new(0, 215, 0, 38)
+        btn.Position = UDim2.new(0, 12, 0, yPos)
+        btn.BackgroundColor3 = color or Color3.fromRGB(45, 45, 55)
+        btn.Text = text
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 13
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.AutoButtonColor = true
+        btn.Parent = mainFrame
+        
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 8)
+        btnCorner.Parent = btn
+        
+        return btn
+    end
     
-    -- Save Position Button (NEW!)
-    local saveButton = Instance.new("TextButton")
-    saveButton.Name = "SaveButton"
-    saveButton.Size = UDim2.new(0, 200, 0, 30)
-    saveButton.Position = UDim2.new(0, 10, 0, 140)
-    saveButton.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
-    saveButton.Text = "💾 Save Position"
-    saveButton.Font = Enum.Font.GothamBold
-    saveButton.TextSize = 12
-    saveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    saveButton.Parent = mainFrame
+    -- Buttons
+    local noclipBtn = createButton("NoclipBtn", "👻 Noclip: OFF", 75)
+    local flyBtn = createButton("FlyBtn", "🚀 Fly: OFF", 120)
+    local tweenTPBtn = createButton("TweenTPBtn", "🌀 Smooth TP: OFF", 165)
+    local saveBtn = createButton("SaveBtn", "💾 Save Position", 215, Color3.fromRGB(255, 140, 0))
+    local tpNowBtn = createButton("TPNowBtn", "📍 TP to Saved (Smooth)", 258, Color3.fromRGB(31, 111, 235))
+    local instantTPBtn = createButton("InstantTPBtn", "⚡ Instant TP (Risky)", 301, Color3.fromRGB(180, 60, 60))
     
-    local saveCorner = Instance.new("UICorner")
-    saveCorner.CornerRadius = UDim.new(0, 6)
-    saveCorner.Parent = saveButton
-    
-    -- TP to Saved Button
-    local tpNowButton = Instance.new("TextButton")
-    tpNowButton.Name = "TPNowButton"
-    tpNowButton.Size = UDim2.new(0, 200, 0, 30)
-    tpNowButton.Position = UDim2.new(0, 10, 0, 178)
-    tpNowButton.BackgroundColor3 = Color3.fromRGB(31, 111, 235)
-    tpNowButton.Text = "📍 TP to Saved"
-    tpNowButton.Font = Enum.Font.GothamBold
-    tpNowButton.TextSize = 12
-    tpNowButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    tpNowButton.Parent = mainFrame
-    
-    local tpNowCorner = Instance.new("UICorner")
-    tpNowCorner.CornerRadius = UDim.new(0, 6)
-    tpNowCorner.Parent = tpNowButton
-    
-    -- Position Display
+    -- Position display
     local posDisplay = Instance.new("TextLabel")
     posDisplay.Name = "PosDisplay"
-    posDisplay.Size = UDim2.new(0, 200, 0, 20)
-    posDisplay.Position = UDim2.new(0, 10, 0, 213)
+    posDisplay.Size = UDim2.new(1, -20, 0, 20)
+    posDisplay.Position = UDim2.new(0, 10, 0, 345)
     posDisplay.BackgroundTransparency = 1
     posDisplay.Text = "No position saved"
     posDisplay.Font = Enum.Font.Gotham
-    posDisplay.TextSize = 9
-    posDisplay.TextColor3 = Color3.fromRGB(150, 150, 150)
+    posDisplay.TextSize = 10
+    posDisplay.TextColor3 = Color3.fromRGB(120, 120, 130)
     posDisplay.Parent = mainFrame
+    
+    -- Speed slider label
+    local speedLabel = Instance.new("TextLabel")
+    speedLabel.Name = "SpeedLabel"
+    speedLabel.Size = UDim2.new(1, -20, 0, 15)
+    speedLabel.Position = UDim2.new(0, 10, 0, 362)
+    speedLabel.BackgroundTransparency = 1
+    speedLabel.Text = "Fly Speed: 50 | Press Q/E to adjust"
+    speedLabel.Font = Enum.Font.Gotham
+    speedLabel.TextSize = 9
+    speedLabel.TextColor3 = Color3.fromRGB(100, 100, 110)
+    speedLabel.Parent = mainFrame
     
     -- Make draggable
     local dragging = false
     local dragInput, mousePos, framePos
     
-    title.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             mousePos = input.Position
             framePos = mainFrame.Position
@@ -144,13 +172,13 @@ local function createGui()
         end
     end)
     
-    title.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
+    titleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
     
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
+    UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - mousePos
             mainFrame.Position = UDim2.new(
@@ -162,156 +190,356 @@ local function createGui()
         end
     end)
     
-    return noclipButton, teleportButton, saveButton, tpNowButton, posDisplay
+    return {
+        noclipBtn = noclipBtn,
+        flyBtn = flyBtn,
+        tweenTPBtn = tweenTPBtn,
+        saveBtn = saveBtn,
+        tpNowBtn = tpNowBtn,
+        instantTPBtn = instantTPBtn,
+        posDisplay = posDisplay,
+        statusLabel = statusLabel,
+        speedLabel = speedLabel
+    }
 end
 
--- Teleport function
-local function teleportToBase()
-    pcall(function()
-        local character = player.Character
-        if not character then return end
-        
-        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-        if not humanoidRootPart then return end
-        
-        humanoidRootPart.CFrame = CFrame.new(basePosition)
-        print("✓ Teleported to:", basePosition)
-    end)
-end
+-- ═══════════════════════════════════════════════════════════════
+-- NOCLIP - Uses Humanoid State Method (Harder to detect)
+-- ═══════════════════════════════════════════════════════════════
 
--- Save current position
-local function saveCurrentPosition(posDisplay)
-    pcall(function()
-        local character = player.Character
-        if not character then 
-            print("❌ No character found")
-            return 
-        end
-        
-        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-        if not humanoidRootPart then 
-            print("❌ No HumanoidRootPart found")
-            return 
-        end
-        
-        -- Save position
-        basePosition = humanoidRootPart.Position
-        
-        -- Update display
-        local x = math.floor(basePosition.X)
-        local y = math.floor(basePosition.Y)
-        local z = math.floor(basePosition.Z)
-        posDisplay.Text = string.format("Saved: %d, %d, %d", x, y, z)
-        posDisplay.TextColor3 = Color3.fromRGB(0, 255, 136)
-        
-        print("✓ Position saved:", basePosition)
-        
-        -- Flash the save button
-        local saveBtn = posDisplay.Parent:FindFirstChild("SaveButton")
-        if saveBtn then
-            saveBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
-            wait(0.3)
-            saveBtn.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
-        end
-    end)
-end
-
--- Noclip function
-local function setNoclip(enabled)
-    local character = player.Character
-    if not character then return end
-    
+local function setNoclip(enabled, statusLabel)
     if enabled then
-        noclipConnection = game:GetService("RunService").Stepped:Connect(function()
+        noclipConnection = RunService.Stepped:Connect(function()
             pcall(function()
-                if player.Character then
-                    for _, part in pairs(player.Character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        end
+                local character = player.Character
+                if character then
+                    local humanoid = character:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        -- State 11 = StrafingNoPhysics - bypasses most anti-cheats
+                        humanoid:ChangeState(11)
                     end
                 end
             end)
         end)
-        print("✓ Noclip ENABLED")
+        if statusLabel then
+            statusLabel.Text = "👻 Noclip Active - Walk through walls!"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+        end
+        print("✓ Noclip ENABLED (State Method)")
     else
         if noclipConnection then
             noclipConnection:Disconnect()
             noclipConnection = nil
         end
-        
         pcall(function()
-            if player.Character then
-                for _, part in pairs(player.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = true
-                    end
+            local character = player.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Running)
                 end
             end
         end)
+        if statusLabel then
+            statusLabel.Text = "🟢 Ready - Anti-Cheat Bypass Active"
+            statusLabel.TextColor3 = Color3.fromRGB(0, 255, 136)
+        end
         print("✓ Noclip DISABLED")
     end
 end
 
--- Auto-TP loop
-local function startAutoTP()
+-- ═══════════════════════════════════════════════════════════════
+-- FLY MODE - Uses BodyVelocity & BodyGyro
+-- ═══════════════════════════════════════════════════════════════
+
+local function setFly(enabled, statusLabel)
+    local character = player.Character
+    if not character then return end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoidRootPart or not humanoid then return end
+    
+    if enabled then
+        -- Create BodyGyro for rotation stability
+        flyBodyGyro = Instance.new("BodyGyro")
+        flyBodyGyro.P = 9e4
+        flyBodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        flyBodyGyro.CFrame = humanoidRootPart.CFrame
+        flyBodyGyro.Parent = humanoidRootPart
+        
+        -- Create BodyVelocity for movement
+        flyBodyVelocity = Instance.new("BodyVelocity")
+        flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        flyBodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        flyBodyVelocity.Parent = humanoidRootPart
+        
+        -- Disable falling
+        humanoid.PlatformStand = true
+        
+        flyConnection = RunService.RenderStepped:Connect(function()
+            pcall(function()
+                if not flyBodyVelocity or not flyBodyGyro then return end
+                
+                local camera = workspace.CurrentCamera
+                local moveDir = Vector3.new(0, 0, 0)
+                
+                -- WASD movement
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                    moveDir = moveDir + camera.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                    moveDir = moveDir - camera.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                    moveDir = moveDir - camera.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                    moveDir = moveDir + camera.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    moveDir = moveDir + Vector3.new(0, 1, 0)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+                    moveDir = moveDir - Vector3.new(0, 1, 0)
+                end
+                
+                if moveDir.Magnitude > 0 then
+                    moveDir = moveDir.Unit * flySpeed
+                end
+                
+                flyBodyVelocity.Velocity = moveDir
+                flyBodyGyro.CFrame = camera.CFrame
+            end)
+        end)
+        
+        if statusLabel then
+            statusLabel.Text = "🚀 Flying - WASD + Space/Shift"
+            statusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+        end
+        print("✓ Fly ENABLED")
+    else
+        if flyConnection then
+            flyConnection:Disconnect()
+            flyConnection = nil
+        end
+        
+        if flyBodyGyro then
+            flyBodyGyro:Destroy()
+            flyBodyGyro = nil
+        end
+        if flyBodyVelocity then
+            flyBodyVelocity:Destroy()
+            flyBodyVelocity = nil
+        end
+        
+        pcall(function()
+            humanoid.PlatformStand = false
+        end)
+        
+        if statusLabel then
+            statusLabel.Text = "🟢 Ready - Anti-Cheat Bypass Active"
+            statusLabel.TextColor3 = Color3.fromRGB(0, 255, 136)
+        end
+        print("✓ Fly DISABLED")
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- TELEPORT FUNCTIONS
+-- ═══════════════════════════════════════════════════════════════
+
+-- SMOOTH TELEPORT using TweenService (Bypasses most anti-teleport)
+local function smoothTeleport(targetPos, statusLabel)
+    pcall(function()
+        local character = player.Character
+        if not character then return end
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if not humanoidRootPart then return end
+        
+        local distance = (humanoidRootPart.Position - targetPos).Magnitude
+        -- Calculate time based on distance (faster for short distances)
+        local tweenTime = math.clamp(distance / 100, 1, 8) -- 1-8 seconds
+        
+        local tweenInfo = TweenInfo.new(
+            tweenTime,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out
+        )
+        
+        local targetCFrame = CFrame.new(targetPos)
+        local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = targetCFrame})
+        
+        if statusLabel then
+            statusLabel.Text = "🌀 Teleporting... (" .. math.floor(tweenTime) .. "s)"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 255, 100)
+        end
+        
+        tween:Play()
+        tween.Completed:Connect(function()
+            if statusLabel then
+                statusLabel.Text = "✅ Arrived at destination!"
+                statusLabel.TextColor3 = Color3.fromRGB(0, 255, 136)
+            end
+        end)
+        
+        print("✓ Smooth teleporting to:", targetPos, "Time:", tweenTime .. "s")
+    end)
+end
+
+-- INSTANT TELEPORT (Risky - may trigger anti-cheat)
+local function instantTeleport(targetPos, statusLabel)
+    pcall(function()
+        local character = player.Character
+        if not character then return end
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if not humanoidRootPart then return end
+        
+        humanoidRootPart.CFrame = CFrame.new(targetPos)
+        
+        if statusLabel then
+            statusLabel.Text = "⚡ Instant TP Done (May lag back)"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        
+        print("✓ Instant teleported to:", targetPos)
+    end)
+end
+
+-- Save current position
+local function savePosition(posDisplay)
+    pcall(function()
+        local character = player.Character
+        if not character then return end
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if not humanoidRootPart then return end
+        
+        basePosition = humanoidRootPart.Position
+        
+        local x = math.floor(basePosition.X)
+        local y = math.floor(basePosition.Y)
+        local z = math.floor(basePosition.Z)
+        posDisplay.Text = string.format("📍 Saved: %d, %d, %d", x, y, z)
+        posDisplay.TextColor3 = Color3.fromRGB(0, 255, 136)
+        
+        print("✓ Position saved:", basePosition)
+    end)
+end
+
+-- Auto-TP loop using smooth teleport
+local function startAutoTP(statusLabel)
     spawn(function()
         while isTeleportEnabled do
-            teleportToBase()
-            wait(5)
+            smoothTeleport(basePosition, statusLabel)
+            wait(autoTPInterval)
         end
     end)
 end
 
--- Main execution
-print("🚀 Loading NEXA Cheats...")
+-- ═══════════════════════════════════════════════════════════════
+-- MAIN EXECUTION
+-- ═══════════════════════════════════════════════════════════════
 
--- Create GUI
-local noclipButton, teleportButton, saveButton, tpNowButton, posDisplay = createGui()
+print("═══════════════════════════════════════")
+print("⚡ NEXA PRO - Loading...")
+print("═══════════════════════════════════════")
 
--- Connect Noclip Button
-noclipButton.MouseButton1Click:Connect(function()
-    isNoclipEnabled = not isNoclipEnabled
-    noclipButton.Text = isNoclipEnabled and "Noclip: ON" or "Noclip: OFF"
-    noclipButton.BackgroundColor3 = isNoclipEnabled and Color3.fromRGB(0, 255, 136) or Color3.fromRGB(60, 60, 60)
-    setNoclip(isNoclipEnabled)
+local ui = createGui()
+
+-- Speed adjustment with Q/E keys
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.Q then
+        flySpeed = math.max(10, flySpeed - 10)
+        ui.speedLabel.Text = "Fly Speed: " .. flySpeed .. " | Press Q/E to adjust"
+        print("Fly speed:", flySpeed)
+    elseif input.KeyCode == Enum.KeyCode.E then
+        flySpeed = math.min(200, flySpeed + 10)
+        ui.speedLabel.Text = "Fly Speed: " .. flySpeed .. " | Press Q/E to adjust"
+        print("Fly speed:", flySpeed)
+    end
 end)
 
--- Connect Auto-TP Button
-teleportButton.MouseButton1Click:Connect(function()
+-- Noclip button
+ui.noclipBtn.MouseButton1Click:Connect(function()
+    isNoclipEnabled = not isNoclipEnabled
+    ui.noclipBtn.Text = isNoclipEnabled and "👻 Noclip: ON" or "👻 Noclip: OFF"
+    ui.noclipBtn.BackgroundColor3 = isNoclipEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(45, 45, 55)
+    setNoclip(isNoclipEnabled, ui.statusLabel)
+end)
+
+-- Fly button
+ui.flyBtn.MouseButton1Click:Connect(function()
+    isFlyEnabled = not isFlyEnabled
+    ui.flyBtn.Text = isFlyEnabled and "🚀 Fly: ON" or "🚀 Fly: OFF"
+    ui.flyBtn.BackgroundColor3 = isFlyEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(45, 45, 55)
+    setFly(isFlyEnabled, ui.statusLabel)
+end)
+
+-- Auto smooth TP button
+ui.tweenTPBtn.MouseButton1Click:Connect(function()
     isTeleportEnabled = not isTeleportEnabled
-    teleportButton.Text = isTeleportEnabled and "Auto-TP: ON" or "Auto-TP: OFF"
-    teleportButton.BackgroundColor3 = isTeleportEnabled and Color3.fromRGB(0, 255, 136) or Color3.fromRGB(60, 60, 60)
+    ui.tweenTPBtn.Text = isTeleportEnabled and "🌀 Smooth TP: ON" or "🌀 Smooth TP: OFF"
+    ui.tweenTPBtn.BackgroundColor3 = isTeleportEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(45, 45, 55)
     
     if isTeleportEnabled then
-        print("✓ Auto-TP started (every 5 seconds)")
-        startAutoTP()
+        startAutoTP(ui.statusLabel)
+        print("✓ Auto Smooth TP started (every " .. autoTPInterval .. "s)")
     else
-        print("✓ Auto-TP stopped")
+        print("✓ Auto Smooth TP stopped")
     end
 end)
 
--- Connect Save Position Button (NEW!)
-saveButton.MouseButton1Click:Connect(function()
-    saveCurrentPosition(posDisplay)
+-- Save position button
+ui.saveBtn.MouseButton1Click:Connect(function()
+    savePosition(ui.posDisplay)
+    -- Flash effect
+    ui.saveBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
+    wait(0.2)
+    ui.saveBtn.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
 end)
 
--- Connect TP to Saved Button
-tpNowButton.MouseButton1Click:Connect(function()
-    teleportToBase()
+-- TP to saved (smooth)
+ui.tpNowBtn.MouseButton1Click:Connect(function()
+    smoothTeleport(basePosition, ui.statusLabel)
 end)
 
--- Re-enable noclip on respawn
+-- Instant TP (risky)
+ui.instantTPBtn.MouseButton1Click:Connect(function()
+    instantTeleport(basePosition, ui.statusLabel)
+end)
+
+-- Re-enable features on respawn
 player.CharacterAdded:Connect(function(character)
     wait(1)
+    
     if isNoclipEnabled then
-        print("Character respawned - re-enabling noclip...")
-        setNoclip(false)
+        print("Respawned - re-enabling noclip...")
+        setNoclip(false, ui.statusLabel)
         wait(0.1)
-        setNoclip(true)
+        setNoclip(true, ui.statusLabel)
+    end
+    
+    if isFlyEnabled then
+        print("Respawned - re-enabling fly...")
+        setFly(false, ui.statusLabel)
+        wait(0.1)
+        setFly(true, ui.statusLabel)
     end
 end)
 
-print("✓ NEXA Cheats loaded!")
-print("✓ Stand at your base and click 'Save Position'")
-print("✓ Then use 'TP to Saved' or enable 'Auto-TP'")
+print("═══════════════════════════════════════")
+print("✅ NEXA PRO Loaded Successfully!")
+print("")
+print("📋 FEATURES:")
+print("  👻 Noclip - Uses state method (harder to detect)")
+print("  🚀 Fly - WASD + Space/Shift to move, Q/E for speed")
+print("  🌀 Smooth TP - Uses TweenService to bypass detection")
+print("  ⚡ Instant TP - Fast but risky")
+print("")
+print("💡 TIPS:")
+print("  - Use SMOOTH TP instead of instant for better bypass")
+print("  - If you lag back, try longer tween times")
+print("  - Some games have server-side anti-cheat (unbypassable)")
+print("═══════════════════════════════════════")
+
