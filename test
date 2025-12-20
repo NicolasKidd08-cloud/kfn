@@ -1,26 +1,139 @@
--- NEXA Base Teleport & Noclip Script
--- Fixed version
+-- NEXA Complete Script with GUI
+-- Auto-teleport & Noclip for Steal a Brainrot
 
--- Define your base coordinates here
+-- Configuration
 local basePosition = Vector3.new(1234, 56, 789) -- Replace with your actual base coordinates
 
--- Variables to track noclip and teleport states (MOVED TO TOP - before functions use them)
+-- Variables
 local isNoclipEnabled = false
 local isTeleportEnabled = false
 local noclipConnection = nil
 
--- Function to teleport the player
+-- Create GUI
+local function createGui()
+    local player = game.Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+    
+    -- Remove old GUI if exists
+    if playerGui:FindFirstChild("NexaTestCheats") then
+        playerGui:FindFirstChild("NexaTestCheats"):Destroy()
+    end
+    
+    -- Create ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "NexaTestCheats"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = playerGui
+    
+    -- Main Frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 200, 0, 150)
+    mainFrame.Position = UDim2.new(0.5, -100, 0.1, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = mainFrame
+    
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
+    title.Text = "NEXA Cheats"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.TextColor3 = Color3.fromRGB(20, 20, 20)
+    title.Parent = mainFrame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 10)
+    titleCorner.Parent = title
+    
+    -- Noclip Button
+    local noclipButton = Instance.new("TextButton")
+    noclipButton.Name = "NoclipButton"
+    noclipButton.Size = UDim2.new(0, 180, 0, 35)
+    noclipButton.Position = UDim2.new(0, 10, 0, 45)
+    noclipButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    noclipButton.Text = "Noclip: OFF"
+    noclipButton.Font = Enum.Font.GothamBold
+    noclipButton.TextSize = 12
+    noclipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    noclipButton.Parent = mainFrame
+    
+    local noclipCorner = Instance.new("UICorner")
+    noclipCorner.CornerRadius = UDim.new(0, 8)
+    noclipCorner.Parent = noclipButton
+    
+    -- Teleport Button
+    local teleportButton = Instance.new("TextButton")
+    teleportButton.Name = "TeleportButton"
+    teleportButton.Size = UDim2.new(0, 180, 0, 35)
+    teleportButton.Position = UDim2.new(0, 10, 0, 90)
+    teleportButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    teleportButton.Text = "Auto-TP: OFF"
+    teleportButton.Font = Enum.Font.GothamBold
+    teleportButton.TextSize = 12
+    teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    teleportButton.Parent = mainFrame
+    
+    local teleportCorner = Instance.new("UICorner")
+    teleportCorner.CornerRadius = UDim.new(0, 8)
+    teleportCorner.Parent = teleportButton
+    
+    -- Make draggable
+    local dragging = false
+    local dragInput, mousePos, framePos
+    
+    title.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            mousePos = input.Position
+            framePos = mainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    title.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - mousePos
+            mainFrame.Position = UDim2.new(
+                framePos.X.Scale,
+                framePos.X.Offset + delta.X,
+                framePos.Y.Scale,
+                framePos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    return noclipButton, teleportButton
+end
+
+-- Teleport function
 local function teleportToBase()
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
     
-    -- Teleport to the base
     humanoidRootPart.CFrame = CFrame.new(basePosition)
     print("✓ Teleported to base!")
 end
 
--- Function to enable/disable noclip (FIXED)
+-- Noclip function
 local function toggleNoclip()
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
@@ -44,7 +157,6 @@ local function toggleNoclip()
             noclipConnection = nil
         end
         
-        -- Re-enable collisions
         if character then
             for _, part in pairs(character:GetDescendants()) do
                 if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
@@ -56,48 +168,13 @@ local function toggleNoclip()
     end
 end
 
--- Function to get UI elements (ADDED ERROR HANDLING)
-local function getUiElements()
-    local player = game.Players.LocalPlayer
-    if not player then return nil, nil end
-    
-    local playerGui = player:WaitForChild("PlayerGui", 5)
-    if not playerGui then return nil, nil end
-    
-    local screenGui = playerGui:FindFirstChild("NexaTestCheats")
-    if not screenGui then return nil, nil end
-    
-    local mainFrame = screenGui:FindFirstChild("MainFrame")
-    if not mainFrame then return nil, nil end
-    
-    local noclipButton = mainFrame:FindFirstChild("NoclipButton")
-    local teleportButton = mainFrame:FindFirstChild("TeleportButton")
-    
-    return noclipButton, teleportButton
-end
+-- Main execution
+print("🚀 Loading NEXA Cheats...")
 
--- Wait for UI elements with timeout (IMPROVED)
-local noclipButton, teleportButton
-local attempts = 0
-local maxAttempts = 30
+-- Create GUI
+local noclipButton, teleportButton = createGui()
 
-repeat
-    noclipButton, teleportButton = getUiElements()
-    attempts = attempts + 1
-    
-    if not (noclipButton and teleportButton) then
-        if attempts >= maxAttempts then
-            warn("⚠ UI elements not found after " .. maxAttempts .. " attempts!")
-            warn("Make sure 'NexaTestCheats' GUI exists with NoclipButton and TeleportButton")
-            return
-        end
-        wait(1)
-    end
-until noclipButton and teleportButton
-
-print("✓ UI elements found!")
-
--- Connect buttons to functions
+-- Connect buttons
 noclipButton.MouseButton1Click:Connect(function()
     isNoclipEnabled = not isNoclipEnabled
     noclipButton.Text = isNoclipEnabled and "Noclip: ON" or "Noclip: OFF"
@@ -115,7 +192,7 @@ teleportButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Function called when a Brainrot is stolen
+-- Auto-teleport on Brainrot stolen
 local function onBrainrotStolen()
     if isTeleportEnabled then
         print("🎯 Brainrot stolen! Auto-teleporting...")
@@ -123,16 +200,17 @@ local function onBrainrotStolen()
     end
 end
 
--- Wait for the ReplicatedStorage and the event (IMPROVED ERROR HANDLING)
-local replicatedStorage = game:GetService("ReplicatedStorage")
-local brainrotStolenEvent = replicatedStorage:WaitForChild("BrainrotStolen", 10)
+-- Try to connect to BrainrotStolen event
+pcall(function()
+    local replicatedStorage = game:GetService("ReplicatedStorage")
+    local brainrotStolenEvent = replicatedStorage:WaitForChild("BrainrotStolen", 5)
+    
+    if brainrotStolenEvent then
+        brainrotStolenEvent.OnClientEvent:Connect(onBrainrotStolen)
+        print("✓ Connected to BrainrotStolen event!")
+    else
+        warn("⚠ BrainrotStolen event not found - Auto-TP on steal won't work")
+    end
+end)
 
-if brainrotStolenEvent then
-    brainrotStolenEvent.OnClientEvent:Connect(onBrainrotStolen)
-    print("✓ Connected to BrainrotStolen event!")
-else
-    warn("⚠ BrainrotStolen event not found in ReplicatedStorage!")
-    warn("Auto-teleport on steal will not work")
-end
-
-print("✓ NEXA script loaded successfully!")
+print("✓ NEXA Cheats loaded successfully!")
