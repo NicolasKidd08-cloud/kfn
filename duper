@@ -1,35 +1,29 @@
--- Nexa Brain Rot Duper (VISUAL ONLY)
--- Client-side preview / UI concept
--- Does NOT dupe real items
+-- Nexa Brain Rot Duper (CLIENT VISUAL ONLY)
+-- Actually works with MOVED models
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "NexaBrainRotDuper"
+gui.ResetOnSpawn = false
 
 local dupeEnabled = false
+local savedPositions = {}
 local fakeDupes = {}
 
 ------------------------------------------------
 -- UI
 ------------------------------------------------
-local gui = Instance.new("ScreenGui")
-gui.Name = "NexaBrainRotDuper"
-gui.ResetOnSpawn = false
-gui.Parent = playerGui
-
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromScale(0.22, 0.25)
-frame.Position = UDim2.fromScale(0.05, 0.35)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.BorderSizePixel = 0
+frame.Size = UDim2.fromOffset(260,150)
+frame.Position = UDim2.fromOffset(50,300)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 frame.Active = true
 frame.Draggable = true
-
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0,12)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
 
 local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.fromScale(1,0.25)
+title.Size = UDim2.new(1,0,0,40)
 title.Text = "Nexa Brain Rot Duper"
 title.TextColor3 = Color3.new(1,1,1)
 title.BackgroundTransparency = 1
@@ -37,80 +31,84 @@ title.Font = Enum.Font.GothamBold
 title.TextScaled = true
 
 local toggle = Instance.new("TextButton", frame)
-toggle.Position = UDim2.fromScale(0.1,0.35)
-toggle.Size = UDim2.fromScale(0.8,0.25)
+toggle.Position = UDim2.fromOffset(20,50)
+toggle.Size = UDim2.fromOffset(220,35)
 toggle.Text = "Dupe: OFF"
 toggle.Font = Enum.Font.GothamBold
 toggle.TextScaled = true
-toggle.BackgroundColor3 = Color3.fromRGB(170,60,60)
+toggle.BackgroundColor3 = Color3.fromRGB(160,60,60)
 toggle.TextColor3 = Color3.new(1,1,1)
-
-local toggleCorner = Instance.new("UICorner", toggle)
+Instance.new("UICorner", toggle)
 
 local clear = Instance.new("TextButton", frame)
-clear.Position = UDim2.fromScale(0.1,0.65)
-clear.Size = UDim2.fromScale(0.8,0.22)
-clear.Text = "Clear Dupe"
+clear.Position = UDim2.fromOffset(20,95)
+clear.Size = UDim2.fromOffset(220,30)
+clear.Text = "Clear Dupes"
 clear.Font = Enum.Font.Gotham
 clear.TextScaled = true
 clear.BackgroundColor3 = Color3.fromRGB(60,60,60)
 clear.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", clear)
 
-local clearCorner = Instance.new("UICorner", clear)
-
-------------------------------------------------
--- Toggle logic
-------------------------------------------------
 toggle.MouseButton1Click:Connect(function()
 	dupeEnabled = not dupeEnabled
-	if dupeEnabled then
-		toggle.Text = "Dupe: ON"
-		toggle.BackgroundColor3 = Color3.fromRGB(60,170,60)
-	else
-		toggle.Text = "Dupe: OFF"
-		toggle.BackgroundColor3 = Color3.fromRGB(170,60,60)
-	end
+	toggle.Text = dupeEnabled and "Dupe: ON" or "Dupe: OFF"
+	toggle.BackgroundColor3 = dupeEnabled and Color3.fromRGB(60,160,60) or Color3.fromRGB(160,60,60)
 end)
 
-------------------------------------------------
--- Clear fake dupes
-------------------------------------------------
 clear.MouseButton1Click:Connect(function()
-	for _,obj in ipairs(fakeDupes) do
-		if obj and obj.Parent then
-			obj:Destroy()
-		end
+	for _,v in ipairs(fakeDupes) do
+		if v and v.Parent then v:Destroy() end
 	end
 	table.clear(fakeDupes)
 end)
 
 ------------------------------------------------
--- Visual-only "dupe" effect
+-- CORE LOGIC (THIS IS THE FIX)
 ------------------------------------------------
-workspace.DescendantAdded:Connect(function(obj)
-	if not dupeEnabled then return end
-	if not obj:IsA("Model") then return end
+local function watchBrainrot(brainrot)
+	if not brainrot:IsA("Model") then return end
+	if not brainrot.PrimaryPart then return end
+	if not brainrot.Name:lower():find("brain") then return end
 
-	-- Adjust this check if Brain Rot models are named differently
-	if not string.find(obj.Name:lower(), "brain") then return end
+	-- Save initial position
+	savedPositions[brainrot] = brainrot.PrimaryPart.CFrame
 
-	task.wait(0.2)
-
-	if not obj.PrimaryPart then return end
-
-	local clone = obj:Clone()
-	clone.Name = obj.Name .. "_FAKE"
-	clone.Parent = workspace
-
-	for _,p in ipairs(clone:GetDescendants()) do
-		if p:IsA("BasePart") then
-			p.Anchored = true
-			p.CanCollide = false
-			p.Transparency = math.clamp(p.Transparency + 0.15, 0, 1)
+	brainrot.PrimaryPart:GetPropertyChangedSignal("CFrame"):Connect(function()
+		if not dupeEnabled then
+			savedPositions[brainrot] = brainrot.PrimaryPart.CFrame
+			return
 		end
-	end
 
-	clone:SetPrimaryPartCFrame(obj.PrimaryPart.CFrame)
-	table.insert(fakeDupes, clone)
-end)
+		local oldCF = savedPositions[brainrot]
+		if not oldCF then return end
+
+		-- Create fake copy at OLD spot
+		local clone = brainrot:Clone()
+		clone.Name = brainrot.Name .. "_FAKE"
+		clone.Parent = workspace
+
+		for _,p in ipairs(clone:GetDescendants()) do
+			if p:IsA("BasePart") then
+				p.Anchored = true
+				p.CanCollide = false
+				p.Transparency = 0.15
+			end
+		end
+
+		clone:SetPrimaryPartCFrame(oldCF)
+		table.insert(fakeDupes, clone)
+
+		-- Update saved position
+		savedPositions[brainrot] = brainrot.PrimaryPart.CFrame
+	end)
+end
+
+-- Watch existing
+for _,v in ipairs(workspace:GetDescendants()) do
+	watchBrainrot(v)
+end
+
+-- Watch new
+workspace.DescendantAdded:Connect(watchBrainrot)
 
