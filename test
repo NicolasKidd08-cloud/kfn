@@ -1,33 +1,7 @@
 -- Define your base coordinates here
 local basePosition = Vector3.new(1234, 56, 789) -- Replace with your actual base coordinates
 
--- Get the UI elements
-local screenGui = game.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("NexaTestCheats")
-local mainFrame = screenGui:WaitForChild("MainFrame")
-local noclipButton = mainFrame:WaitForChild("NoclipButton")
-local teleportButton = mainFrame:WaitForChild("TeleportButton")
-
--- Variables to track noclip and teleport states
-local isNoclipEnabled = false
-local isTeleportEnabled = false
-
--- Function to enable/disable noclip
-local function toggleNoclip()
-    isNoclipEnabled = not isNoclipEnabled
-    noclipButton.Text = isNoclipEnabled and "Noclip: ON" or "Noclip: OFF"
-
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
-
-    if isNoclipEnabled then
-        humanoid.PlatformStand = true
-    else
-        humanoid.PlatformStand = false
-    end
-end
-
--- Function to teleport to base
+-- Function to teleport the player
 local function teleportToBase()
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
@@ -37,15 +11,62 @@ local function teleportToBase()
     humanoidRootPart.CFrame = CFrame.new(basePosition)
 end
 
--- Connect buttons to functions
-noclipButton.MouseButton1Click:Connect(toggleNoclip)
-teleportButton.MouseButton1Click:Connect(function()
-    isTeleportEnabled = not isTeleportEnabled
-    teleportButton.Text = isTeleportEnabled and "Teleport: ON" or "Teleport: OFF"
-    if isTeleportEnabled then
-        teleportToBase()
+-- Function to enable/disable noclip
+local function toggleNoclip()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+
+    if not isNoclipEnabled then
+        humanoid.PlatformStand = true
+    else
+        humanoid.PlatformStand = false
     end
-end)
+end
+
+-- Variables to track noclip and teleport states
+local isNoclipEnabled = false
+local isTeleportEnabled = false
+
+-- Get the UI elements
+local function getUiElements()
+    local screenGui = game.Players.LocalPlayer:FindFirstChildOfClass("PlayerGui"):FindFirstChild("NexaTestCheats")
+    if not screenGui then
+        warn("NexaTestCheats ScreenGui not found!")
+        return
+    end
+
+    local mainFrame = screenGui:FindFirstChild("MainFrame")
+    if not mainFrame then
+        warn("MainFrame not found!")
+        return
+    end
+
+    local noclipButton = mainFrame:FindFirstChild("NoclipButton")
+    local teleportButton = mainFrame:FindFirstChild("TeleportButton")
+
+    return noclipButton, teleportButton
+end
+
+-- Connect buttons to functions
+local noclipButton, teleportButton = getUiElements()
+if noclipButton and teleportButton then
+    noclipButton.MouseButton1Click:Connect(function()
+        isNoclipEnabled = not isNoclipEnabled
+        noclipButton.Text = isNoclipEnabled and "Noclip: ON" or "Noclip: OFF"
+        toggleNoclip()
+    end)
+
+    teleportButton.MouseButton1Click:Connect(function()
+        isTeleportEnabled = not isTeleportEnabled
+        teleportButton.Text = isTeleportEnabled and "Teleport: ON" or "Teleport: OFF"
+        if isTeleportEnabled then
+            teleportToBase()
+        end
+    end)
+else
+    warn("UI elements not found!")
+end
 
 -- Connect to the event when a Brainrot is stolen
 game.ReplicatedStorage:WaitForChild("BrainrotStolen").OnClientEvent:Connect(function()
