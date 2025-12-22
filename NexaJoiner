@@ -1,385 +1,71 @@
--- NEXA CHILLI AUTO-PASTE - STANDALONE TEST VERSION
--- Works without desktop server - for testing Chilli integration
+-- CHILLI HUB FINDER - Shows EXACT GUI structure
+-- This will tell us the real name of Chilli Hub
 
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-print("🚀 NEXA Chilli Test Version Loading...")
+print("\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("🔍 CHILLI HUB DIAGNOSTIC TOOL")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
--- Test job data (simulates server data)
-local testJobs = {
-	{jobId = "test-job-12345", name = "High Paying Job", money = "$5000", players = "3"},
-	{jobId = "test-job-67890", name = "Fast Money Run", money = "$3500", players = "5"},
-}
+-- List ALL ScreenGuis in PlayerGui
+print("📋 ALL SCREEN GUIS IN PLAYERGUI:")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
--- Current job index
-local currentJobIndex = 1
-
--- Settings
-local Settings = {
-	ToggleKeybind = Enum.KeyCode.RightControl,
-	AutoClickChilli = true
-}
-
--- Create ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "NexaChilliTest"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
-
--- Simple control panel
-local controlPanel = Instance.new("Frame")
-controlPanel.Size = UDim2.new(0, 350, 0, 250)
-controlPanel.Position = UDim2.new(0.5, -175, 0.5, -125)
-controlPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-controlPanel.BorderSizePixel = 2
-controlPanel.BorderColor3 = Color3.fromRGB(0, 255, 136)
-controlPanel.Active = true
-controlPanel.Draggable = true
-controlPanel.Parent = screenGui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = controlPanel
-
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
-title.Font = Enum.Font.GothamBold
-title.Text = "🔗 NEXA → CHILLI TEST"
-title.TextColor3 = Color3.fromRGB(20, 20, 25)
-title.TextSize = 16
-title.Parent = controlPanel
-
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 10)
-titleCorner.Parent = title
-
-local titleFix = Instance.new("Frame")
-titleFix.Size = UDim2.new(1, 0, 0, 10)
-titleFix.Position = UDim2.new(0, 0, 1, -10)
-titleFix.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
-titleFix.BorderSizePixel = 0
-titleFix.Parent = title
-
--- Status label
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Name = "StatusLabel"
-statusLabel.Size = UDim2.new(1, -20, 0, 60)
-statusLabel.Position = UDim2.new(0, 10, 0, 50)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.Text = "Ready to test\nClick button to send job to Chilli"
-statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-statusLabel.TextSize = 12
-statusLabel.TextWrapped = true
-statusLabel.TextYAlignment = Enum.TextYAlignment.Top
-statusLabel.Parent = controlPanel
-
--- Send Test Job Button
-local sendButton = Instance.new("TextButton")
-sendButton.Size = UDim2.new(0, 320, 0, 50)
-sendButton.Position = UDim2.new(0, 15, 0, 120)
-sendButton.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
-sendButton.Font = Enum.Font.GothamBold
-sendButton.Text = "📤 SEND TEST JOB TO CHILLI"
-sendButton.TextColor3 = Color3.fromRGB(20, 20, 25)
-sendButton.TextSize = 14
-sendButton.Parent = controlPanel
-
-local sendCorner = Instance.new("UICorner")
-sendCorner.CornerRadius = UDim.new(0, 8)
-sendCorner.Parent = sendButton
-
--- Find Chilli Button
-local findButton = Instance.new("TextButton")
-findButton.Size = UDim2.new(0, 320, 0, 40)
-findButton.Position = UDim2.new(0, 15, 0, 180)
-findButton.BackgroundColor3 = Color3.fromRGB(30, 111, 235)
-findButton.Font = Enum.Font.GothamBold
-findButton.Text = "🔍 FIND CHILLI ELEMENTS"
-findButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-findButton.TextSize = 12
-findButton.Parent = controlPanel
-
-local findCorner = Instance.new("UICorner")
-findCorner.CornerRadius = UDim.new(0, 8)
-findCorner.Parent = findButton
-
--- Close Button
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 30, 0, 30)
-closeButton.Position = UDim2.new(1, -35, 0, 5)
-closeButton.BackgroundColor3 = Color3.fromRGB(255, 68, 68)
-closeButton.Font = Enum.Font.GothamBold
-closeButton.Text = "X"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.TextSize = 16
-closeButton.Parent = controlPanel
-
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 6)
-closeCorner.Parent = closeButton
-
--- FUNCTION TO FIND CHILLI HUB
-local function findChilliGui()
-	print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	print("🔍 SEARCHING FOR CHILLI HUB...")
-	print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	
-	-- First, list ALL GUIs to see what's available
-	print("📋 All PlayerGui children:")
-	for _, gui in pairs(playerGui:GetChildren()) do
-		if gui:IsA("ScreenGui") then
-			print("  -", gui.Name)
+for _, gui in pairs(playerGui:GetChildren()) do
+	if gui:IsA("ScreenGui") then
+		print("\n✅ GUI Name:", gui.Name)
+		print("   Enabled:", gui.Enabled)
+		
+		-- Check if it has Chilli-related text
+		local hasChilli = false
+		for _, obj in pairs(gui:GetDescendants()) do
+			if obj:IsA("TextLabel") or obj:IsA("TextButton") then
+				local text = obj.Text or ""
+				if text:lower():find("chilli") or text:find("Server Tools") then
+					hasChilli = true
+					print("   ⭐ CONTAINS CHILLI TEXT:", text)
+					break
+				end
+			end
 		end
-	end
-	print("")
-	
-	local possibleNames = {
-		"Chilli Hub Premium",  -- Added!
-		"ChilliHub", 
-		"Chilli Hub", 
-		"Chilli", 
-		"ChilliGUI", 
-		"ScreenGui"
-	}
-	
-	for _, name in pairs(possibleNames) do
-		local gui = playerGui:FindFirstChild(name)
-		if gui then
-			print("✅ Found GUI:", name)
+		
+		if hasChilli then
+			print("\n   🎯 THIS IS PROBABLY CHILLI HUB!")
+			print("   Searching for textboxes...")
 			
-			-- Check if it's actually Chilli by looking for specific text
+			-- Find all textboxes
 			for _, obj in pairs(gui:GetDescendants()) do
-				if obj:IsA("TextLabel") then
-					local text = obj.Text and obj.Text:lower() or ""
-					if text:find("chilli") or text:find("server") or text:find("main") then
-						print("✅ Confirmed Chilli GUI:", name)
-						return gui
-					end
+				if obj:IsA("TextBox") then
+					print("\n   📦 FOUND TEXTBOX:")
+					print("      Full Path:", obj:GetFullName())
+					print("      Name:", obj.Name)
+					print("      Placeholder:", obj.PlaceholderText or "none")
+					print("      Text:", obj.Text or "empty")
+					print("      Visible:", obj.Visible)
+					print("      Parent:", obj.Parent and obj.Parent.Name or "none")
 				end
 			end
 			
-			-- If we found a GUI but couldn't confirm, still return it
-			print("⚠️ Found GUI but couldn't confirm it's Chilli")
-			return gui
-		end
-	end
-	
-	print("❌ Chilli Hub GUI not found!")
-	print("💡 Make sure Chilli Hub is loaded")
-	return nil
-end
-
--- FUNCTION TO FIND JOB ID INPUT
-local function findChilliJobInput()
-	local chilliGui = findChilliGui()
-	if not chilliGui then return nil end
-	
-	print("🔍 Searching for Job ID input...")
-	
-	-- Look for "Server Tools" section (I can see it in your screenshot!)
-	for _, obj in pairs(chilliGui:GetDescendants()) do
-		if obj:IsA("TextLabel") and obj.Text and obj.Text:find("Server Tools") then
-			print("✅ Found 'Server Tools' label")
-			
-			-- Look for textbox near it
-			local parent = obj.Parent
-			if parent then
-				for _, child in pairs(parent:GetDescendants()) do
-					if child:IsA("TextBox") then
-						print("✅ Found TextBox near Server Tools:", child:GetFullName())
-						print("   Name:", child.Name)
-						print("   Placeholder:", child.PlaceholderText or "none")
-						return child
+			-- Find all buttons near "Server Tools"
+			print("\n   🔍 Looking for buttons near 'Server Tools'...")
+			for _, obj in pairs(gui:GetDescendants()) do
+				if obj:IsA("TextButton") then
+					local text = obj.Text or ""
+					if text:find("Join") or text:find("Copy") or text:find("Rejoin") then
+						print("\n   🔘 FOUND BUTTON:", text)
+						print("      Full Path:", obj:GetFullName())
+						print("      Name:", obj.Name)
 					end
 				end
 			end
 		end
 	end
-	
-	-- Fallback: Look for any textbox in Server section
-	print("⚠️ Searching for 'Server' frame...")
-	for _, obj in pairs(chilliGui:GetDescendants()) do
-		if obj:IsA("Frame") and obj.Name:find("Server") then
-			print("✅ Found Server frame:", obj.Name)
-			
-			-- Look for textbox inside
-			for _, child in pairs(obj:GetDescendants()) do
-				if child:IsA("TextBox") then
-					print("✅ Found TextBox in Server frame:", child:GetFullName())
-					print("   Name:", child.Name)
-					print("   Placeholder:", child.PlaceholderText or "none")
-					return child
-				end
-			end
-		end
-	end
-	
-	-- Last resort: List ALL textboxes
-	print("⚠️ Listing ALL textboxes in Chilli GUI:")
-	for _, obj in pairs(chilliGui:GetDescendants()) do
-		if obj:IsA("TextBox") then
-			print("📦 TextBox:", obj:GetFullName())
-			print("   Name:", obj.Name)
-			print("   Placeholder:", obj.PlaceholderText or "none")
-			print("   Visible:", obj.Visible)
-		end
-	end
-	
-	print("❌ Job ID input not found")
-	return nil
 end
 
--- FUNCTION TO FIND JOIN BUTTON
-local function findChilliJoinButton()
-	local chilliGui = findChilliGui()
-	if not chilliGui then return nil end
-	
-	print("🔍 Searching for Join button...")
-	
-	for _, obj in pairs(chilliGui:GetDescendants()) do
-		if obj:IsA("TextButton") or obj:IsA("ImageButton") then
-			local text = obj.Text and obj.Text:lower() or ""
-			local name = obj.Name:lower()
-			
-			if text:find("join") or text:find("enter") or text:find("teleport") or name:find("join") then
-				print("✅ Found Join Button:", obj:GetFullName())
-				print("   Text:", obj.Text)
-				return obj
-			end
-		end
-	end
-	
-	print("❌ Join button not found")
-	return nil
-end
-
--- FUNCTION TO PASTE INTO CHILLI
-local function pasteToChilli(jobId, jobName)
-	print("")
-	print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	print("📤 SENDING TO CHILLI...")
-	print("Job:", jobName)
-	print("ID:", jobId)
-	print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	
-	local input = findChilliJobInput()
-	
-	if input then
-		-- Paste the job ID
-		input.Text = jobId
-		print("✅ Pasted Job ID:", jobId)
-		
-		statusLabel.Text = "✅ SUCCESS!\nPasted: " .. jobName .. "\nID: " .. jobId
-		statusLabel.TextColor3 = Color3.fromRGB(0, 255, 136)
-		
-		-- Try to click join button
-		if Settings.AutoClickChilli then
-			task.wait(0.3)
-			local button = findChilliJoinButton()
-			
-			if button then
-				pcall(function()
-					-- Try multiple click methods
-					for _, connection in pairs(getconnections(button.MouseButton1Click)) do
-						connection:Fire()
-					end
-					button.MouseButton1Click:Fire()
-				end)
-				print("✅ Clicked join button")
-				print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-			else
-				print("⚠️ Join button not found")
-				print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-			end
-		end
-		
-		return true
-	else
-		statusLabel.Text = "❌ FAILED\nChilli Hub not found or\nJob ID input not visible"
-		statusLabel.TextColor3 = Color3.fromRGB(255, 68, 68)
-		print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-		return false
-	end
-end
-
--- Event Handlers
-sendButton.MouseButton1Click:Connect(function()
-	local job = testJobs[currentJobIndex]
-	
-	sendButton.Text = "⏳ SENDING..."
-	sendButton.BackgroundColor3 = Color3.fromRGB(255, 211, 61)
-	
-	task.wait(0.5)
-	
-	local success = pasteToChilli(job.jobId, job.name)
-	
-	if success then
-		sendButton.Text = "✅ SENT!"
-		sendButton.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
-		
-		-- Cycle to next job
-		currentJobIndex = currentJobIndex + 1
-		if currentJobIndex > #testJobs then
-			currentJobIndex = 1
-		end
-		
-		task.wait(1.5)
-		sendButton.Text = "📤 SEND NEXT TEST JOB"
-		sendButton.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
-	else
-		sendButton.Text = "❌ FAILED - TRY AGAIN"
-		sendButton.BackgroundColor3 = Color3.fromRGB(255, 68, 68)
-		
-		task.wait(2)
-		sendButton.Text = "📤 SEND TEST JOB TO CHILLI"
-		sendButton.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
-	end
-end)
-
-findButton.MouseButton1Click:Connect(function()
-	findButton.Text = "🔍 SEARCHING..."
-	
-	task.wait(0.3)
-	
-	print("\n\n")
-	findChilliGui()
-	findChilliJobInput()
-	findChilliJoinButton()
-	print("\n\n")
-	
-	findButton.Text = "✅ CHECK CONSOLE (F9)"
-	task.wait(2)
-	findButton.Text = "🔍 FIND CHILLI ELEMENTS"
-end)
-
-closeButton.MouseButton1Click:Connect(function()
-	screenGui:Destroy()
-end)
-
--- Keybind to toggle
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	
-	if input.KeyCode == Settings.ToggleKeybind then
-		controlPanel.Visible = not controlPanel.Visible
-	end
-end)
-
-print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("✅ NEXA CHILLI TEST LOADED!")
-print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("💡 INSTRUCTIONS:")
-print("1. Load Chilli Hub")
-print("2. Open Chilli's Servers tab")
-print("3. Click 'SEND TEST JOB TO CHILLI'")
-print("4. Check if it pastes the job ID")
-print("")
-print("🔍 Click 'FIND CHILLI ELEMENTS' to debug")
-print("📋 Press F9 to see console output")
-print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("✅ DIAGNOSTIC COMPLETE!")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("\n💡 COPY THE EXACT GUI NAME AND TEXTBOX PATH")
+print("📋 Then tell me what you found!\n")
