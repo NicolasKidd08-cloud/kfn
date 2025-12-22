@@ -54,7 +54,7 @@ local DESYNC_FLAGS = {
 
 -- GUI Creation
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ModernBrainrotHub"
+ScreenGui.Name = "NexaHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = PlayerGui
@@ -123,7 +123,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -20, 0, 30)
 Title.Position = UDim2.new(0, 15, 0, 10)
 Title.BackgroundTransparency = 1
-Title.Text = "🧠 Modern Brainrot Hub"
+Title.Text = "⚡ NEXA HUB"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 22
 Title.Font = Enum.Font.GothamBold
@@ -137,7 +137,7 @@ local Subtitle = Instance.new("TextLabel")
 Subtitle.Size = UDim2.new(1, -20, 0, 20)
 Subtitle.Position = UDim2.new(0, 15, 0, 42)
 Subtitle.BackgroundTransparency = 1
-Title.Text = "Premium Edition • v2.0"
+Subtitle.Text = "Premium Edition • v2.0"
 Subtitle.TextColor3 = Color3.fromRGB(200, 200, 220)
 Subtitle.TextSize = 14
 Subtitle.Font = Enum.Font.GothamSemibold
@@ -186,7 +186,7 @@ UIListLayout.Padding = UDim.new(0, 10)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Parent = ScrollFrame
 
--- Helper function to create toggles with BRIGHT visible styling
+-- Helper function to create toggles with BRIGHT visible styling and ON/OFF labels
 local function CreateToggle(name, callback)
     local ToggleFrame = Instance.new("Frame")
     ToggleFrame.Size = UDim2.new(1, 0, 0, 50)
@@ -207,7 +207,7 @@ local function CreateToggle(name, callback)
     
     -- Big visible label
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(0.65, 0, 1, 0)
+    Label.Size = UDim2.new(0.5, 0, 1, 0)
     Label.Position = UDim2.new(0, 15, 0, 0)
     Label.BackgroundTransparency = 1
     Label.Text = name
@@ -217,11 +217,23 @@ local function CreateToggle(name, callback)
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = ToggleFrame
     
+    -- ON/OFF Status Label
+    local StatusLabel = Instance.new("TextLabel")
+    StatusLabel.Size = UDim2.new(0, 40, 1, 0)
+    StatusLabel.Position = UDim2.new(1, -120, 0, 0)
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Text = "OFF"
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    StatusLabel.TextSize = 14
+    StatusLabel.Font = Enum.Font.GothamBold
+    StatusLabel.TextXAlignment = Enum.TextXAlignment.Right
+    StatusLabel.Parent = ToggleFrame
+    
     -- MUCH bigger and more visible toggle switch
     local ToggleBg = Instance.new("Frame")
     ToggleBg.Size = UDim2.new(0, 60, 0, 32)
     ToggleBg.Position = UDim2.new(1, -70, 0.5, -16)
-    ToggleBg.BackgroundColor3 = Color3.fromRGB(70, 70, 85)
+    ToggleBg.BackgroundColor3 = Color3.fromRGB(80, 50, 50)
     ToggleBg.BorderSizePixel = 0
     ToggleBg.Parent = ToggleFrame
     
@@ -229,7 +241,7 @@ local function CreateToggle(name, callback)
     
     -- Visible border for toggle
     local ToggleBgBorder = Instance.new("UIStroke")
-    ToggleBgBorder.Color = Color3.fromRGB(120, 120, 140)
+    ToggleBgBorder.Color = Color3.fromRGB(255, 100, 100)
     ToggleBgBorder.Thickness = 2
     ToggleBgBorder.Parent = ToggleBg
     
@@ -274,23 +286,47 @@ local function CreateToggle(name, callback)
         enabled = not enabled
         callback(enabled)
         
-        -- Super bright purple when ON
-        TweenService:Create(ToggleBg, TweenInfo.new(0.3), {
-            BackgroundColor3 = enabled and Color3.fromRGB(180, 80, 255) or Color3.fromRGB(70, 70, 85)
-        }):Play()
-        
-        TweenService:Create(ToggleBgBorder, TweenInfo.new(0.3), {
-            Color = enabled and Color3.fromRGB(255, 120, 255) or Color3.fromRGB(120, 120, 140)
-        }):Play()
+        if enabled then
+            -- ENABLED STATE - GREEN
+            StatusLabel.Text = "ON"
+            TweenService:Create(StatusLabel, TweenInfo.new(0.3), {
+                TextColor3 = Color3.fromRGB(100, 255, 100)
+            }):Play()
+            
+            TweenService:Create(ToggleBg, TweenInfo.new(0.3), {
+                BackgroundColor3 = Color3.fromRGB(50, 120, 50)
+            }):Play()
+            
+            TweenService:Create(ToggleBgBorder, TweenInfo.new(0.3), {
+                Color = Color3.fromRGB(100, 255, 100)
+            }):Play()
+            
+            TweenService:Create(Label, TweenInfo.new(0.3), {
+                TextColor3 = Color3.fromRGB(200, 255, 200)
+            }):Play()
+        else
+            -- DISABLED STATE - RED
+            StatusLabel.Text = "OFF"
+            TweenService:Create(StatusLabel, TweenInfo.new(0.3), {
+                TextColor3 = Color3.fromRGB(255, 100, 100)
+            }):Play()
+            
+            TweenService:Create(ToggleBg, TweenInfo.new(0.3), {
+                BackgroundColor3 = Color3.fromRGB(80, 50, 50)
+            }):Play()
+            
+            TweenService:Create(ToggleBgBorder, TweenInfo.new(0.3), {
+                Color = Color3.fromRGB(255, 100, 100)
+            }):Play()
+            
+            TweenService:Create(Label, TweenInfo.new(0.3), {
+                TextColor3 = Color3.fromRGB(255, 255, 255)
+            }):Play()
+        end
         
         -- Move circle
         TweenService:Create(ToggleCircle, TweenInfo.new(0.3), {
             Position = enabled and UDim2.new(0, 31, 0.5, -13) or UDim2.new(0, 3, 0.5, -13)
-        }):Play()
-        
-        -- Make label brighter when enabled
-        TweenService:Create(Label, TweenInfo.new(0.3), {
-            TextColor3 = enabled and Color3.fromRGB(255, 200, 255) or Color3.fromRGB(255, 255, 255)
         }):Play()
     end)
     
@@ -1040,6 +1076,34 @@ CreateToggle("Speed Boost During Steal", function(enabled)
     end
 end)
 
+CreateToggle("AP Spammer", function(enabled)
+    if enabled then
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/NicolasKidd08-cloud/kfn/refs/heads/main/SpammerV2", true))()
+        end)
+        if not success then
+            warn("SpammerV2 error:", err)
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "AP Spammer Error";
+                Text = "Failed to load script";
+                Duration = 3;
+            })
+        else
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "AP Spammer";
+                Text = "Loaded successfully!";
+                Duration = 3;
+            })
+        end
+    else
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "AP Spammer";
+            Text = "Toggle OFF to stop (reload required)";
+            Duration = 3;
+        })
+    end
+end)
+
 -- Section: Movement
 CreateSection("🚀 MOVEMENT")
 
@@ -1090,9 +1154,9 @@ end)
 
 -- Startup notification
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Modern Brainrot Hub";
-    Text = "Loaded successfully! All features stolen from BK's Hub";
+    Title = "⚡ NEXA HUB";
+    Text = "Loaded successfully! All features ready";
     Duration = 5;
 })
 
-print("🧠 Modern Brainrot Hub loaded!")
+print("⚡ NEXA HUB loaded!")
