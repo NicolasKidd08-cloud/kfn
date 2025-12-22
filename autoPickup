@@ -1250,9 +1250,8 @@ end)
 -- Startup notification
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Modern Brainrot Hub";
-    Text = "Loaded successfully! All features stolen from BK's Hub";
+    Text = "Loaded successfully! All features stolen from Nexa Hub";
     Duration = 5;
 })
 
 print("🧠 Modern Brainrot Hub loaded!")
-
