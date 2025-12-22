@@ -9,7 +9,7 @@ screenGui.Parent = playerGui
 
 -- Create Main Frame
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 250, 0, 80)
+frame.Size = UDim2.new(0, 250, 0, 120)
 frame.Position = UDim2.new(0.5, -125, 0, 30)
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BorderSizePixel = 0
@@ -37,9 +37,9 @@ end)
 -- Create Toggle Button
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 220, 0, 50)
-button.Position = UDim2.new(0.5, -110, 0.5, -25)
+button.Position = UDim2.new(0.5, -110, 0, 15)
 button.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-button.Text = "NEXA AUTO PICK UP: OFF"
+button.Text = "AUTO PICK UP: OFF"
 button.TextColor3 = Color3.fromRGB(0, 100, 0)
 button.Font = Enum.Font.GothamBold
 button.TextSize = 14
@@ -56,94 +56,183 @@ buttonStroke.Thickness = 2
 buttonStroke.Color = Color3.fromRGB(0, 80, 0)
 buttonStroke.Parent = button
 
--- State variable
-local instaPickupEnabled = false
+-- Speed Toggle Button
+local speedButton = Instance.new("TextButton")
+speedButton.Size = UDim2.new(0, 220, 0, 40)
+speedButton.Position = UDim2.new(0.5, -110, 0, 70)
+speedButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+speedButton.Text = "SPEED BOOST: OFF"
+speedButton.TextColor3 = Color3.fromRGB(100, 100, 0)
+speedButton.Font = Enum.Font.GothamBold
+speedButton.TextSize = 12
+speedButton.BorderSizePixel = 0
+speedButton.Parent = frame
 
--- Toggle function
+local speedButtonCorner = Instance.new("UICorner")
+speedButtonCorner.CornerRadius = UDim.new(0, 8)
+speedButtonCorner.Parent = speedButton
+
+local speedButtonStroke = Instance.new("UIStroke")
+speedButtonStroke.Thickness = 2
+speedButtonStroke.Color = Color3.fromRGB(80, 80, 0)
+speedButtonStroke.Parent = speedButton
+
+-- State variables
+local autoPickupEnabled = false
+local speedBoostEnabled = false
+local originalWalkSpeed = 16
+
+-- Toggle auto pickup function
 button.MouseButton1Click:Connect(function()
-    instaPickupEnabled = not instaPickupEnabled
+    autoPickupEnabled = not autoPickupEnabled
    
-    if instaPickupEnabled then
+    if autoPickupEnabled then
         button.TextColor3 = Color3.fromRGB(0, 255, 0)
-        button.Text = "NEXA AUTO PICK UP: ON"
+        button.Text = "AUTO PICK UP: ON"
         buttonStroke.Color = Color3.fromRGB(0, 255, 0)
     else
         button.TextColor3 = Color3.fromRGB(0, 100, 0)
-        button.Text = "NEXA AUTO PICK UP: OFF"
+        button.Text = "AUTO PICK UP: OFF"
         buttonStroke.Color = Color3.fromRGB(0, 80, 0)
     end
 end)
 
--- Improved pickup logic
-local pickedUpItems = {}
-local checkInterval = 0.1
+-- Toggle speed boost function
+speedButton.MouseButton1Click:Connect(function()
+    speedBoostEnabled = not speedBoostEnabled
+    
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            if speedBoostEnabled then
+                humanoid.WalkSpeed = 50
+                speedButton.TextColor3 = Color3.fromRGB(255, 255, 0)
+                speedButton.Text = "SPEED BOOST: ON"
+                speedButtonStroke.Color = Color3.fromRGB(255, 255, 0)
+            else
+                humanoid.WalkSpeed = originalWalkSpeed
+                speedButton.TextColor3 = Color3.fromRGB(100, 100, 0)
+                speedButton.Text = "SPEED BOOST: OFF"
+                speedButtonStroke.Color = Color3.fromRGB(80, 80, 0)
+            end
+        end
+    end
+end)
+
+-- Function to find brainrots
+local function findBrainrots()
+    local brainrots = {}
+    
+    -- Search in workspace for brainrot models
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") then
+            -- Check if it has a ProximityPrompt (for stealing from bases or conveyor)
+            local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+            if prompt and prompt.Enabled then
+                local primaryPart = obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart")
+                if primaryPart then
+                    table.insert(brainrots, {model = obj, part = primaryPart, prompt = prompt})
+                end
+            end
+        elseif obj:IsA("BasePart") then
+            -- Check for individual parts with ProximityPrompts
+            local prompt = obj:FindFirstChildOfClass("ProximityPrompt")
+            if prompt and prompt.Enabled then
+                table.insert(brainrots, {model = obj.Parent, part = obj, prompt = prompt})
+            end
+        end
+    end
+    
+    return brainrots
+end
+
+-- Main auto pickup loop
+local lastCheck = 0
+local checkInterval = 0.2
 
 task.spawn(function()
     while task.wait(checkInterval) do
-        if not instaPickupEnabled then continue end
-       
+        if not autoPickupEnabled then continue end
+        
         local character = player.Character
         if not character then continue end
-       
+        
         local rootPart = character:FindFirstChild("HumanoidRootPart")
-        if not rootPart then continue end
-       
-        -- Search for ProximityPrompts in workspace
-        for _, descendant in pairs(workspace:GetDescendants()) do
-            if descendant:IsA("ProximityPrompt") and descendant.Enabled then
-                local promptParent = descendant.Parent
-                
-                if promptParent and promptParent:IsA("BasePart") then
-                    -- Calculate distance
-                    local distance = (promptParent.Position - rootPart.Position).Magnitude
-                   
-                    -- Check if within range and not already picked up
-                    if distance <= descendant.MaxActivationDistance then
-                        local itemId = promptParent:GetFullName()
-                        
-                        if not pickedUpItems[itemId] then
-                            -- Mark as picked up to avoid spam
-                            pickedUpItems[itemId] = true
-                            
-                            -- Trigger the proximity prompt
-                            task.spawn(function()
-                                pcall(function()
-                                    fireproximityprompt(descendant)
-                                end)
-                            end)
-                            
-                            -- Clear from picked up list after delay
-                            task.delay(2, function()
-                                pickedUpItems[itemId] = nil
-                            end)
-                            
-                            -- Small delay to prevent overwhelming the server
-                            task.wait(0.05)
-                        end
+        local humanoid = character:FindFirstChild("Humanoid")
+        if not rootPart or not humanoid or humanoid.Health <= 0 then continue end
+        
+        -- Find all available brainrots
+        local brainrots = findBrainrots()
+        
+        -- Find closest brainrot
+        local closestBrainrot = nil
+        local closestDistance = math.huge
+        
+        for _, brainrotData in pairs(brainrots) do
+            local distance = (brainrotData.part.Position - rootPart.Position).Magnitude
+            
+            -- Check if it's within a reasonable range and closer than previous
+            if distance <= 50 and distance < closestDistance then
+                closestDistance = distance
+                closestBrainrot = brainrotData
+            end
+        end
+        
+        -- If we found a brainrot, try to pick it up
+        if closestBrainrot then
+            local prompt = closestBrainrot.prompt
+            local distance = (closestBrainrot.part.Position - rootPart.Position).Magnitude
+            
+            -- If within activation range, trigger the prompt
+            if distance <= prompt.MaxActivationDistance then
+                -- Use fireproximityprompt if available
+                local success, err = pcall(function()
+                    if fireproximityprompt then
+                        fireproximityprompt(prompt)
+                    else
+                        -- Fallback method
+                        prompt:InputHoldBegin()
+                        task.wait(prompt.HoldDuration or 0)
+                        prompt:InputHoldEnd()
                     end
+                end)
+                
+                if success then
+                    task.wait(0.1) -- Small delay after pickup
+                end
+            else
+                -- Move towards the brainrot if we're not close enough
+                if distance > 5 then
+                    humanoid:MoveTo(closestBrainrot.part.Position)
                 end
             end
         end
     end
 end)
 
--- Cleanup picked up items table periodically
+-- Keep speed boost active
+player.CharacterAdded:Connect(function(character)
+    task.wait(1)
+    if speedBoostEnabled then
+        local humanoid = character:WaitForChild("Humanoid")
+        humanoid.WalkSpeed = 50
+    end
+end)
+
+-- Monitor for changes in humanoid walkspeed (in case game tries to reset it)
 task.spawn(function()
-    while task.wait(10) do
-        -- Clear old entries
-        for id, _ in pairs(pickedUpItems) do
-            local success = pcall(function()
-                local parts = string.split(id, ".")
-                local obj = workspace
-                for _, part in ipairs(parts) do
-                    obj = obj:FindFirstChild(part)
-                    if not obj then break end
+    while task.wait(1) do
+        if speedBoostEnabled then
+            local character = player.Character
+            if character then
+                local humanoid = character:FindFirstChild("Humanoid")
+                if humanoid and humanoid.WalkSpeed ~= 50 then
+                    humanoid.WalkSpeed = 50
                 end
-                -- If object doesn't exist anymore, remove from table
-                if not obj then
-                    pickedUpItems[id] = nil
-                end
-            end)
+            end
         end
     end
 end)
+
+print("NEXA Auto Pickup loaded successfully!")
