@@ -221,43 +221,52 @@ local function EnableDesync()
 end
 
 -- ============================================================
--- AUTO STEAL SYSTEM (Stolen from BK's Hub)
+-- AUTO STEAL SYSTEM (Stolen from BK's Hub) - FIXED
 -- ============================================================
 
 local PromptCache = {}
 local InternalStealCache = {}
+local LastTargetUID = nil
 
-local function FindProximityPrompt(animalData)
-    if PromptCache[animalData] then
-        return PromptCache[animalData]
-    end
+local function GetHRP()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
+end
+
+local function FindAllProximityPrompts()
+    local prompts = {}
     
-    local plot = workspace.Plots:FindFirstChild(animalData.plot)
-    if not plot then return nil end
-    
-    local podiums = plot:FindFirstChild("AnimalPodiums")
-    if not podiums then return nil end
-    
-    local podium = podiums:FindFirstChild(animalData.slot)
-    if not podium then return nil end
-    
-    local base = podium:FindFirstChild("Base")
-    if not base then return nil end
-    
-    local spawn = base:FindFirstChild("Spawn")
-    if not spawn then return nil end
-    
-    local attach = spawn:FindFirstChild("PromptAttachment")
-    if not attach then return nil end
-    
-    for _, p in ipairs(attach:GetChildren()) do
-        if p:IsA("ProximityPrompt") then
-            PromptCache[animalData] = p
-            return p
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Enabled then
+            local parent = obj.Parent
+            if parent and parent:IsA("BasePart") then
+                table.insert(prompts, {prompt = obj, part = parent})
+            end
         end
     end
     
-    return nil
+    return prompts
+end
+
+local function GetNearestPrompt()
+    local hrp = GetHRP()
+    if not hrp then return nil end
+    
+    local allPrompts = FindAllProximityPrompts()
+    local nearest = nil
+    local minDist = math.huge
+    
+    for _, data in pairs(allPrompts) do
+        local dist = (data.part.Position - hrp.Position).Magnitude
+        
+        if dist <= data.prompt.MaxActivationDistance and dist < minDist then
+            minDist = dist
+            nearest = data.prompt
+        end
+    end
+    
+    return nearest
 end
 
 local function BuildStealCallbacks(prompt)
@@ -287,7 +296,9 @@ local function BuildStealCallbacks(prompt)
         end
     end
     
-    InternalStealCache[prompt] = data
+    if #data.holdCallbacks > 0 or #data.triggerCallbacks > 0 then
+        InternalStealCache[prompt] = data
+    end
 end
 
 local function ExecuteSteal(prompt)
@@ -297,17 +308,19 @@ local function ExecuteSteal(prompt)
     data.ready = false
     
     task.spawn(function()
+        -- Execute hold callbacks
         for _, fn in ipairs(data.holdCallbacks) do
             task.spawn(fn)
         end
         
         task.wait(1.3)
         
+        -- Execute trigger callbacks
         for _, fn in ipairs(data.triggerCallbacks) do
             task.spawn(fn)
         end
         
-        task.wait()
+        task.wait(0.1)
         data.ready = true
     end)
     
@@ -322,24 +335,20 @@ local function StartAutoSteal()
     AutoStealConnection = RunService.Heartbeat:Connect(function()
         if not Config.AutoStealEnabled then return end
         
-        -- Find all animals and steal from nearest/best
-        -- (Simplified version - full implementation would scan all animals)
-        for _, plot in pairs(workspace.Plots:GetChildren()) do
-            local podiums = plot:FindFirstChild("AnimalPodiums")
-            if podiums then
-                for _, podium in pairs(podiums:GetChildren()) do
-                    -- Try to find and execute steal
-                    local animalData = {plot = plot.Name, slot = podium.Name}
-                    local prompt = FindProximityPrompt(animalData)
-                    
-                    if prompt then
-                        BuildStealCallbacks(prompt)
-                        ExecuteSteal(prompt)
-                    end
-                end
+        local nearestPrompt = GetNearestPrompt()
+        
+        if nearestPrompt then
+            -- Build callbacks if not cached
+            if not InternalStealCache[nearestPrompt] then
+                BuildStealCallbacks(nearestPrompt)
             end
+            
+            -- Execute steal
+            ExecuteSteal(nearestPrompt)
         end
     end)
+    
+    print("Auto-Steal started!")
 end
 
 local function StopAutoSteal()
@@ -347,6 +356,7 @@ local function StopAutoSteal()
         AutoStealConnection:Disconnect()
         AutoStealConnection = nil
     end
+    print("Auto-Steal stopped!")
 end
 
 -- ============================================================
@@ -389,45 +399,160 @@ local function StopSpeedBoost()
 end
 
 -- ============================================================
--- ANTI-RAGDOLL SYSTEM (Stolen from BK's Hub)
+-- ANTI-RAGDOLL SYSTEM (Stolen from BK's Hub) - FIXED
 -- ============================================================
 
 local AntiRagdollConnection = nil
+local cachedCharData = {}
 
-local function StartAntiRagdoll()
-    if AntiRagdollConnection then return end
+local function CacheCharacterData()
+    local char = LocalPlayer.Character
+    if not char then return false end
     
-    AntiRagdollConnection = RunService.Heartbeat:Connect(function()
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    
+    if not hum or not root then return false end
+    
+    cachedCharData = {
+        character = char,
+        humanoid = hum,
+        root = root,
+    }
+    
+    return true
+end
+
+local function IsRagdolled()
+    if not cachedCharData.humanoid then return false end
+    
+    local hum = cachedCharData.humanoid
+    local state = hum:GetState()
+    
+    -- State check
+    local ragdollStates = {
+        [Enum.HumanoidStateType.Physics] = true,
+        [Enum.HumanoidStateType.Ragdoll] = true,
+        [Enum.HumanoidStateType.FallingDown] = true
+    }
+    
+    if ragdollStates[state] then
+        return true
+    end
+    
+    -- Timer attribute check
+    local endTime = LocalPlayer:GetAttribute("RagdollEndTime")
+    if endTime then
+        local now = workspace:GetServerTimeNow()
+        if (endTime - now) > 0 then
+            return true
+        end
+    end
+    
+    return false
+end
+
+local function RemoveRagdollConstraints()
+    if not cachedCharData.character then return end
+    
+    for _, descendant in ipairs(cachedCharData.character:GetDescendants()) do
+        if descendant:IsA("BallSocketConstraint") or 
+           (descendant:IsA("Attachment") and descendant.Name:find("RagdollAttachment")) then
+            pcall(function()
+                descendant:Destroy()
+            end)
+        end
+    end
+end
+
+local function ForceExitRagdoll()
+    if not cachedCharData.humanoid or not cachedCharData.root then return end
+    
+    local hum = cachedCharData.humanoid
+    local root = cachedCharData.root
+    
+    -- Clear ragdoll timer
+    pcall(function()
+        local now = workspace:GetServerTimeNow()
+        LocalPlayer:SetAttribute("RagdollEndTime", now)
+    end)
+    
+    -- Force standing state
+    if hum.Health > 0 then
+        hum:ChangeState(Enum.HumanoidStateType.Running)
+    end
+    
+    -- Reset physics
+    root.Anchored = false
+    root.AssemblyLinearVelocity = Vector3.zero
+    root.AssemblyAngularVelocity = Vector3.zero
+end
+
+local function AntiRagdollLoop()
+    while Config.AntiRagdollEnabled and cachedCharData.humanoid do
+        task.wait()
+        
+        if IsRagdolled() then
+            -- Remove constraints and force exit
+            RemoveRagdollConstraints()
+            ForceExitRagdoll()
+        end
+    end
+end
+
+local function SetupCameraBinding()
+    if not cachedCharData.humanoid then return end
+    
+    RunService.RenderStepped:Connect(function()
         if not Config.AntiRagdollEnabled then return end
         
-        local char = LocalPlayer.Character
-        if not char then return end
-        
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        
-        -- Check if ragdolled
-        local state = hum:GetState()
-        if state == Enum.HumanoidStateType.Physics or 
-           state == Enum.HumanoidStateType.Ragdoll then
-            
-            -- Force exit ragdoll
-            hum:ChangeState(Enum.HumanoidStateType.Running)
-            
-            -- Clear ragdoll timer
-            pcall(function()
-                local now = workspace:GetServerTimeNow()
-                LocalPlayer:SetAttribute("RagdollEndTime", now)
-            end)
+        local cam = workspace.CurrentCamera
+        if cam and cachedCharData.humanoid and cam.CameraSubject ~= cachedCharData.humanoid then
+            cam.CameraSubject = cachedCharData.humanoid
         end
     end)
 end
 
+local function OnCharacterAdded(char)
+    task.wait(0.5)
+    
+    if not Config.AntiRagdollEnabled then return end
+    
+    if CacheCharacterData() then
+        SetupCameraBinding()
+        task.spawn(AntiRagdollLoop)
+    end
+end
+
+local function StartAntiRagdoll()
+    if AntiRagdollConnection then return end
+    
+    -- Cache character data
+    if not CacheCharacterData() then
+        warn("Failed to cache character data")
+        return
+    end
+    
+    -- Setup character respawn listener
+    AntiRagdollConnection = LocalPlayer.CharacterAdded:Connect(OnCharacterAdded)
+    
+    -- Start loop
+    SetupCameraBinding()
+    task.spawn(AntiRagdollLoop)
+    
+    print("Anti-Ragdoll started!")
+end
+
 local function StopAntiRagdoll()
+    Config.AntiRagdollEnabled = false
+    
     if AntiRagdollConnection then
         AntiRagdollConnection:Disconnect()
         AntiRagdollConnection = nil
     end
+    
+    cachedCharData = {}
+    print("Anti-Ragdoll stopped!")
 end
 
 -- ============================================================
