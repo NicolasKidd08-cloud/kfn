@@ -1,78 +1,94 @@
--- FIND CHILLI BY SERVER TOOLS FRAME
--- Searches for the GUI containing Server Tools
+-- FIND ANY VISIBLE TEXTBOX
+-- Shows ALL visible textboxes on screen right now
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("🔍 SEARCHING BY FRAME STRUCTURE")
+print("🔍 FINDING ALL VISIBLE TEXTBOXES")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
--- Look for ANY GUI with a frame visible in center-left area
-print("Looking for GUIs with visible frames...")
+local foundTextboxes = {}
 
 for _, gui in pairs(playerGui:GetChildren()) do
-    if gui:IsA("ScreenGui") and gui.Enabled then
-        
-        -- Look for frames that might be Chilli's main window
-        for _, frame in pairs(gui:GetDescendants()) do
-            if frame:IsA("Frame") and frame.Visible then
-                
-                -- Check size - Chilli's main frame is probably medium-sized
-                local size = frame.AbsoluteSize
-                if size.X > 300 and size.X < 600 and size.Y > 400 and size.Y < 700 then
-                    
-                    -- Check if it has textboxes (which Chilli does)
-                    local hasTextBox = false
-                    for _, child in pairs(frame:GetDescendants()) do
-                        if child:IsA("TextBox") then
-                            hasTextBox = true
-                            break
-                        end
-                    end
-                    
-                    if hasTextBox then
-                        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                        print("🎯 FOUND POTENTIAL CHILLI FRAME!")
-                        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                        print("Parent GUI:", gui.Name)
-                        print("Frame Name:", frame.Name)
-                        print("Frame Size:", size.X, "x", size.Y)
-                        print("Frame Path:", frame:GetFullName())
-                        print("")
-                        
-                        -- Find ALL textboxes in this frame
-                        print("📦 TEXTBOXES IN THIS FRAME:")
-                        for _, obj in pairs(frame:GetDescendants()) do
-                            if obj:IsA("TextBox") and obj.Visible then
-                                print("  ✅ TextBox:", obj.Name)
-                                print("     Full Path:", obj:GetFullName())
-                                print("     Placeholder:", obj.PlaceholderText or "none")
-                                print("     Parent:", obj.Parent and obj.Parent.Name or "none")
-                                print("")
-                            end
-                        end
-                        
-                        -- Find buttons
-                        print("🔘 BUTTONS IN THIS FRAME:")
-                        for _, obj in pairs(frame:GetDescendants()) do
-                            if obj:IsA("TextButton") and obj.Visible then
-                                print("  🔘 Button:", obj.Text or obj.Name)
-                                print("     Path:", obj:GetFullName())
-                                print("")
-                            end
-                        end
-                        
-                        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-                    end
-                end
+    for _, obj in pairs(gui:GetDescendants()) do
+        if obj:IsA("TextBox") then
+            -- Check if it's actually visible on screen
+            if obj.Visible and obj.Parent and obj.Parent.Visible then
+                table.insert(foundTextboxes, {
+                    gui = gui.Name,
+                    path = obj:GetFullName(),
+                    name = obj.Name,
+                    placeholder = obj.PlaceholderText or "none",
+                    text = obj.Text or "empty"
+                })
             end
         end
     end
 end
 
-print("✅ SEARCH COMPLETE!")
-print("\n💡 Look for the frame that matches Chilli's window size")
-print("📋 Then tell me the GUI name and textbox path!\n")
+if #foundTextboxes > 0 then
+    print("✅ FOUND", #foundTextboxes, "VISIBLE TEXTBOX(ES):\n")
+    
+    for i, tb in ipairs(foundTextboxes) do
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("📦 TEXTBOX #" .. i)
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("Parent GUI:", tb.gui)
+        print("Name:", tb.name)
+        print("Full Path:", tb.path)
+        print("Placeholder:", tb.placeholder)
+        print("Current Text:", tb.text)
+        print("")
+    end
+    
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("💡 THE ONE WITH CHILLI IS YOUR TARGET!")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+else
+    print("❌ NO VISIBLE TEXTBOXES FOUND!")
+    print("💡 Make sure:")
+    print("   - Chilli Hub is open")
+    print("   - Server Tools tab is selected")
+    print("   - Job-ID Input field is visible")
+    print("")
+end
 
+-- Also create a test function that pastes to the first visible textbox
+_G.PasteToFirstTextbox = function(text)
+    text = text or "test-job-12345"
+    
+    if #foundTextboxes > 0 then
+        local firstBox = foundTextboxes[1]
+        print("\n📤 Attempting to paste to first textbox...")
+        print("Target:", firstBox.path)
+        
+        -- Find the actual textbox object
+        local success, obj = pcall(function()
+            return game:GetService(table.unpack(string.split(firstBox.path, ".")))
+        end)
+        
+        if not success then
+            -- Try different method
+            for _, gui in pairs(playerGui:GetChildren()) do
+                for _, o in pairs(gui:GetDescendants()) do
+                    if o:GetFullName() == firstBox.path then
+                        o.Text = text
+                        print("✅ PASTED:", text)
+                        return true
+                    end
+                end
+            end
+        end
+    else
+        print("❌ No textboxes found to paste into")
+    end
+    
+    return false
+end
+
+print("✅ Diagnostic complete!")
+print("\n📋 MANUAL COMMAND:")
+print("   _G.PasteToFirstTextbox('your-job-id')")
+print("")
