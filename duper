@@ -1,113 +1,57 @@
--- NEXA → CHILLI ULTRA SIMPLE
--- Finds textbox in "Chilli Hub Premium" GUI
+-- CHILLI GUI NAME FINDER
+-- Shows the REAL internal name of Chilli Hub
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("🔗 NEXA → CHILLI (By GUI Name)")
+print("🔍 FINDING CHILLI HUB'S REAL NAME")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
--- Find Chilli by looking for GUI with "Chilli" in the name
-local function findChilliGui()
-	print("🔍 Looking for Chilli Hub GUI...")
-	
-	for _, gui in pairs(playerGui:GetChildren()) do
-		local name = gui.Name
-		print("  Checking:", name)
-		
-		-- Check if name contains "Chilli"
-		if name:find("Chilli") or name:find("chilli") then
-			print("✅ FOUND CHILLI GUI:", name)
-			return gui
-		end
-	end
-	
-	print("❌ No GUI with 'Chilli' in name found")
-	return nil
-end
+print("📋 ALL GUI NAMES IN PLAYERGUI:")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
--- Find the textbox in Chilli
-local function findJobIdInput()
-	local chilliGui = findChilliGui()
-	
-	if not chilliGui then 
-		print("❌ Chilli GUI not found")
-		return nil 
-	end
-	
-	print("\n🔍 Looking for textbox in Chilli...")
-	
-	-- Find ALL visible textboxes in this GUI
-	local textboxes = {}
-	for _, obj in pairs(chilliGui:GetDescendants()) do
-		if obj:IsA("TextBox") and obj.Visible then
-			table.insert(textboxes, obj)
-			print("📦 Found TextBox:")
-			print("   Path:", obj:GetFullName())
-			print("   Name:", obj.Name)
-			print("   Placeholder:", obj.PlaceholderText or "none")
-			print("   Visible:", obj.Visible)
-			print("")
-		end
-	end
-	
-	if #textboxes == 1 then
-		print("✅ Found exactly 1 textbox - using it!")
-		return textboxes[1]
-	elseif #textboxes > 1 then
-		print("⚠️ Found", #textboxes, "textboxes - using the first one")
-		return textboxes[1]
-	else
-		print("❌ No textboxes found in Chilli")
-		return nil
-	end
-end
-
--- PASTE FUNCTION
-local function pasteJobId(jobId)
-	print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	print("📤 ATTEMPTING TO PASTE:", jobId)
-	print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-	
-	local textbox = findJobIdInput()
-	
-	if textbox then
-		-- Paste it!
-		textbox.Text = jobId
-		
-		print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-		print("✅ SUCCESS! PASTED TO CHILLI")
-		print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-		
-		-- Green flash
-		pcall(function()
-			local original = textbox.BackgroundColor3
-			textbox.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
-			task.wait(0.5)
-			textbox.BackgroundColor3 = original
-		end)
-		
-		return true
-	else
-		print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-		print("❌ FAILED TO PASTE")
-		print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-		return false
-	end
-end
-
--- GLOBAL TEST FUNCTION
-_G.NexaTest = function(jobId)
-	jobId = jobId or "test-job-12345"
-	return pasteJobId(jobId)
+for _, gui in pairs(playerGui:GetChildren()) do
+    if gui:IsA("ScreenGui") then
+        print("GUI:", gui.Name)
+        
+        -- Check if it has any Frame with "Chilli" text
+        local hasChilli = false
+        for _, obj in pairs(gui:GetDescendants()) do
+            if obj:IsA("TextLabel") and obj.Text then
+                local text = obj.Text
+                if text:find("Chilli") or text:find("Premium") or text:find("Server Tools") then
+                    hasChilli = true
+                    print("  ⭐ CONTAINS TEXT:", text)
+                end
+            end
+        end
+        
+        if hasChilli then
+            print("  🎯 THIS IS PROBABLY CHILLI HUB!")
+            print("  🎯 REAL GUI NAME:", gui.Name)
+            print("")
+            
+            -- Now find textboxes in this GUI
+            print("  📦 TEXTBOXES IN THIS GUI:")
+            for _, obj in pairs(gui:GetDescendants()) do
+                if obj:IsA("TextBox") then
+                    print("    - Found:", obj.Name)
+                    print("      Path:", obj:GetFullName())
+                    print("      Visible:", obj.Visible)
+                    print("")
+                end
+            end
+        end
+        print("")
+    end
 end
 
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("✅ NEXA BRIDGE LOADED!")
+print("✅ SEARCH COMPLETE!")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("📋 To test, click the green button")
-print("   or type: _G.NexaTest('job-id')")
-print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+print("\n💡 Look for the line that says:")
+print("   '🎯 REAL GUI NAME: [something]'")
+print("\n📋 Copy that name and send it to me!\n")
 
