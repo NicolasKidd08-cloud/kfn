@@ -34,6 +34,10 @@ local Config = {
     AntiRagdollEnabled = false,
     FloorStealEnabled = false,
     SpeedBoostEnabled = false,
+    WalkSpeedEnabled = false,
+    JumpPowerEnabled = false,
+    PlayerESPEnabled = false,
+    FullbrightEnabled = false,
 }
 
 -- DESYNC FLAGS (Stolen from BK's Hub)
@@ -1217,72 +1221,6 @@ CreateToggle("AP Spammer", function(enabled)
     end
 end)
 
--- Section: Auto Farm
-CreateSection("💰 AUTO FARM")
-
-CreateToggle("Auto Collect Cash", function(enabled)
-    Config.AutoCollectCash = enabled
-    
-    if enabled then
-        Config.CashCollectConnection = RunService.Heartbeat:Connect(function()
-            if not Config.AutoCollectCash then return end
-            
-            -- Find all green cash parts
-            for _, obj in pairs(workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and obj.BrickColor == BrickColor.new("Lime green") then
-                    local clickDetector = obj:FindFirstChildOfClass("ClickDetector")
-                    if clickDetector then
-                        fireclickdetector(clickDetector)
-                    end
-                end
-            end
-        end)
-        
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Auto Collect Cash";
-            Text = "Collecting all cash!";
-            Duration = 3;
-        })
-    else
-        if Config.CashCollectConnection then
-            Config.CashCollectConnection:Disconnect()
-            Config.CashCollectConnection = nil
-        end
-    end
-end)
-
-CreateToggle("Auto Sell Animals", function(enabled)
-    Config.AutoSell = enabled
-    
-    if enabled then
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Auto Sell";
-            Text = "Will sell animals automatically";
-            Duration = 3;
-        })
-        
-        Config.AutoSellConnection = RunService.Heartbeat:Connect(function()
-            if not Config.AutoSell then return end
-            
-            -- Find sell NPC and fire
-            local sellNPC = workspace:FindFirstChild("SellNPC") or workspace:FindFirstChild("Sell")
-            if sellNPC then
-                local clickDetector = sellNPC:FindFirstChildOfClass("ClickDetector", true)
-                if clickDetector then
-                    fireclickdetector(clickDetector)
-                end
-            end
-            
-            task.wait(5) -- Sell every 5 seconds
-        end)
-    else
-        if Config.AutoSellConnection then
-            Config.AutoSellConnection:Disconnect()
-            Config.AutoSellConnection = nil
-        end
-    end
-end)
-
 -- Section: Movement
 CreateSection("🚀 MOVEMENT")
 
@@ -1597,3 +1535,69 @@ game:GetService("StarterGui"):SetCore("SendNotification", {
 })
 
 print("⚡ NEXA HUB loaded!")
+
+-- ============================================================
+-- AUTO-START FEATURES ON LOAD
+-- ============================================================
+
+task.spawn(function()
+    task.wait(1) -- Wait for everything to load
+    
+    -- Auto-enable Desync V3 on start
+    EnableDesync()
+    
+    -- Auto-enable Walk Speed
+    Config.WalkSpeedEnabled = true
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = 50
+        end
+    end
+    
+    Config.WalkSpeedConnection = LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        if Config.WalkSpeedEnabled then
+            local c = LocalPlayer.Character
+            if c then
+                local h = c:FindFirstChildOfClass("Humanoid")
+                if h then h.WalkSpeed = 50 end
+            end
+        end
+    end)
+    
+    -- Auto-enable Jump Power
+    Config.JumpPowerEnabled = true
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.JumpPower = 100
+        end
+    end
+    
+    Config.JumpPowerConnection = LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        if Config.JumpPowerEnabled then
+            local c = LocalPlayer.Character
+            if c then
+                local h = c:FindFirstChildOfClass("Humanoid")
+                if h then h.JumpPower = 100 end
+            end
+        end
+    end)
+    
+    -- Auto-enable Fullbright
+    Config.FullbrightEnabled = true
+    game:GetService("Lighting").Brightness = 2
+    game:GetService("Lighting").ClockTime = 14
+    game:GetService("Lighting").FogEnd = 100000
+    game:GetService("Lighting").GlobalShadows = false
+    game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "⚡ Auto-Start Features";
+        Text = "Desync, Speed, Jump & Fullbright ON!";
+        Duration = 4;
+    })
+end)
