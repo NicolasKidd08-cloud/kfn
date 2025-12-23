@@ -134,7 +134,7 @@ Title.Parent = HeaderFrame
 
 -- Bright subtitle
 local Subtitle = Instance.new("TextLabel")
-Subtitle.Size = UDim2.new(1, -20, 0, 20)
+Subtitle.Size = UDim2.new(1, -100, 0, 20)
 Subtitle.Position = UDim2.new(0, 15, 0, 42)
 Subtitle.BackgroundTransparency = 1
 Subtitle.Text = "Premium Edition • v2.0"
@@ -143,6 +143,119 @@ Subtitle.TextSize = 14
 Subtitle.Font = Enum.Font.GothamSemibold
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
 Subtitle.Parent = HeaderFrame
+
+-- Minimize Button
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Size = UDim2.new(0, 35, 0, 35)
+MinimizeButton.Position = UDim2.new(1, -80, 0.5, -17.5)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+MinimizeButton.Text = "_"
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.TextSize = 20
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.BorderSizePixel = 0
+MinimizeButton.Parent = HeaderFrame
+
+Instance.new("UICorner", MinimizeButton).CornerRadius = UDim.new(0, 8)
+
+local MinimizeStroke = Instance.new("UIStroke")
+MinimizeStroke.Color = Color3.fromRGB(150, 150, 170)
+MinimizeStroke.Thickness = 2
+MinimizeStroke.Parent = MinimizeButton
+
+MinimizeButton.MouseEnter:Connect(function()
+    TweenService:Create(MinimizeButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+    }):Play()
+end)
+
+MinimizeButton.MouseLeave:Connect(function()
+    TweenService:Create(MinimizeButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+    }):Play()
+end)
+
+local isMinimized = false
+
+MinimizeButton.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    
+    if isMinimized then
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(0, 420, 0, 70)
+        }):Play()
+        ScrollFrame.Visible = false
+        MinimizeButton.Text = "+"
+    else
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(0, 420, 0, 550)
+        }):Play()
+        ScrollFrame.Visible = true
+        MinimizeButton.Text = "_"
+    end
+end)
+
+-- Close Button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 35, 0, 35)
+CloseButton.Position = UDim2.new(1, -40, 0.5, -17.5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 18
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.BorderSizePixel = 0
+CloseButton.Parent = HeaderFrame
+
+Instance.new("UICorner", CloseButton).CornerRadius = UDim.new(0, 8)
+
+local CloseStroke = Instance.new("UIStroke")
+CloseStroke.Color = Color3.fromRGB(255, 120, 120)
+CloseStroke.Thickness = 2
+CloseStroke.Parent = CloseButton
+
+CloseButton.MouseEnter:Connect(function()
+    TweenService:Create(CloseButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(255, 50, 50),
+        Size = UDim2.new(0, 38, 0, 38)
+    }):Play()
+end)
+
+CloseButton.MouseLeave:Connect(function()
+    TweenService:Create(CloseButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(255, 80, 80),
+        Size = UDim2.new(0, 35, 0, 35)
+    }):Play()
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    -- Fade out animation
+    TweenService:Create(MainFrame, TweenInfo.new(0.3), {
+        BackgroundTransparency = 1
+    }):Play()
+    TweenService:Create(MainStroke, TweenInfo.new(0.3), {
+        Transparency = 1
+    }):Play()
+    
+    for _, child in ipairs(MainFrame:GetDescendants()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") then
+            TweenService:Create(child, TweenInfo.new(0.3), {
+                TextTransparency = 1
+            }):Play()
+        elseif child:IsA("Frame") and child ~= MainFrame then
+            TweenService:Create(child, TweenInfo.new(0.3), {
+                BackgroundTransparency = 1
+            }):Play()
+        elseif child:IsA("UIStroke") then
+            TweenService:Create(child, TweenInfo.new(0.3), {
+                Transparency = 1
+            }):Play()
+        end
+    end
+    
+    task.wait(0.3)
+    ScreenGui:Destroy()
+end)
 
 -- Bright status indicator
 local StatusDot = Instance.new("Frame")
@@ -1104,6 +1217,72 @@ CreateToggle("AP Spammer", function(enabled)
     end
 end)
 
+-- Section: Auto Farm
+CreateSection("💰 AUTO FARM")
+
+CreateToggle("Auto Collect Cash", function(enabled)
+    Config.AutoCollectCash = enabled
+    
+    if enabled then
+        Config.CashCollectConnection = RunService.Heartbeat:Connect(function()
+            if not Config.AutoCollectCash then return end
+            
+            -- Find all green cash parts
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and obj.BrickColor == BrickColor.new("Lime green") then
+                    local clickDetector = obj:FindFirstChildOfClass("ClickDetector")
+                    if clickDetector then
+                        fireclickdetector(clickDetector)
+                    end
+                end
+            end
+        end)
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Auto Collect Cash";
+            Text = "Collecting all cash!";
+            Duration = 3;
+        })
+    else
+        if Config.CashCollectConnection then
+            Config.CashCollectConnection:Disconnect()
+            Config.CashCollectConnection = nil
+        end
+    end
+end)
+
+CreateToggle("Auto Sell Animals", function(enabled)
+    Config.AutoSell = enabled
+    
+    if enabled then
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Auto Sell";
+            Text = "Will sell animals automatically";
+            Duration = 3;
+        })
+        
+        Config.AutoSellConnection = RunService.Heartbeat:Connect(function()
+            if not Config.AutoSell then return end
+            
+            -- Find sell NPC and fire
+            local sellNPC = workspace:FindFirstChild("SellNPC") or workspace:FindFirstChild("Sell")
+            if sellNPC then
+                local clickDetector = sellNPC:FindFirstChildOfClass("ClickDetector", true)
+                if clickDetector then
+                    fireclickdetector(clickDetector)
+                end
+            end
+            
+            task.wait(5) -- Sell every 5 seconds
+        end)
+    else
+        if Config.AutoSellConnection then
+            Config.AutoSellConnection:Disconnect()
+            Config.AutoSellConnection = nil
+        end
+    end
+end)
+
 -- Section: Movement
 CreateSection("🚀 MOVEMENT")
 
@@ -1113,6 +1292,76 @@ CreateToggle("Floor Steal", function(enabled)
         StartFloorSteal()
     else
         StopFloorSteal()
+    end
+end)
+
+CreateToggle("Walk Speed Boost", function(enabled)
+    Config.WalkSpeedEnabled = enabled
+    
+    local function setWalkSpeed()
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = enabled and 50 or 16
+            end
+        end
+    end
+    
+    if enabled then
+        setWalkSpeed()
+        
+        Config.WalkSpeedConnection = LocalPlayer.CharacterAdded:Connect(function()
+            task.wait(0.5)
+            setWalkSpeed()
+        end)
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Walk Speed";
+            Text = "Speed set to 50!";
+            Duration = 3;
+        })
+    else
+        setWalkSpeed()
+        if Config.WalkSpeedConnection then
+            Config.WalkSpeedConnection:Disconnect()
+            Config.WalkSpeedConnection = nil
+        end
+    end
+end)
+
+CreateToggle("Jump Power Boost", function(enabled)
+    Config.JumpPowerEnabled = enabled
+    
+    local function setJumpPower()
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.JumpPower = enabled and 100 or 50
+            end
+        end
+    end
+    
+    if enabled then
+        setJumpPower()
+        
+        Config.JumpPowerConnection = LocalPlayer.CharacterAdded:Connect(function()
+            task.wait(0.5)
+            setJumpPower()
+        end)
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Jump Power";
+            Text = "Jump set to 100!";
+            Duration = 3;
+        })
+    else
+        setJumpPower()
+        if Config.JumpPowerConnection then
+            Config.JumpPowerConnection:Disconnect()
+            Config.JumpPowerConnection = nil
+        end
     end
 end)
 
@@ -1136,11 +1385,199 @@ CreateToggle("Anti-Ragdoll", function(enabled)
     end
 end)
 
+-- Section: Visuals
+CreateSection("👁️ VISUALS")
+
+CreateToggle("Player ESP", function(enabled)
+    Config.PlayerESPEnabled = enabled
+    
+    if enabled then
+        local function createESP(player)
+            if player == LocalPlayer then return end
+            
+            local function addESPToChar(char)
+                task.wait(0.5)
+                
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                
+                -- Highlight
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "PlayerESP"
+                highlight.Adornee = char
+                highlight.FillColor = Color3.fromRGB(255, 100, 255)
+                highlight.OutlineColor = Color3.fromRGB(255, 150, 255)
+                highlight.FillTransparency = 0.5
+                highlight.OutlineTransparency = 0
+                highlight.Parent = char
+                
+                -- Billboard
+                local billboard = Instance.new("BillboardGui")
+                billboard.Name = "PlayerESPLabel"
+                billboard.Adornee = hrp
+                billboard.Size = UDim2.new(0, 200, 0, 50)
+                billboard.StudsOffset = Vector3.new(0, 3, 0)
+                billboard.AlwaysOnTop = true
+                billboard.Parent = char
+                
+                local label = Instance.new("TextLabel")
+                label.Size = UDim2.new(1, 0, 1, 0)
+                label.BackgroundTransparency = 1
+                label.Text = player.Name
+                label.TextColor3 = Color3.fromRGB(255, 255, 255)
+                label.TextSize = 18
+                label.Font = Enum.Font.GothamBold
+                label.TextStrokeTransparency = 0
+                label.Parent = billboard
+            end
+            
+            if player.Character then
+                addESPToChar(player.Character)
+            end
+            
+            player.CharacterAdded:Connect(function(char)
+                if Config.PlayerESPEnabled then
+                    addESPToChar(char)
+                end
+            end)
+        end
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            createESP(player)
+        end
+        
+        Config.PlayerESPConnection = Players.PlayerAdded:Connect(createESP)
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Player ESP";
+            Text = "Now tracking all players!";
+            Duration = 3;
+        })
+    else
+        -- Remove all ESP
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                local esp = player.Character:FindFirstChild("PlayerESP")
+                if esp then esp:Destroy() end
+                
+                local label = player.Character:FindFirstChild("PlayerESPLabel")
+                if label then label:Destroy() end
+            end
+        end
+        
+        if Config.PlayerESPConnection then
+            Config.PlayerESPConnection:Disconnect()
+            Config.PlayerESPConnection = nil
+        end
+    end
+end)
+
+CreateToggle("Fullbright", function(enabled)
+    Config.FullbrightEnabled = enabled
+    
+    if enabled then
+        game:GetService("Lighting").Brightness = 2
+        game:GetService("Lighting").ClockTime = 14
+        game:GetService("Lighting").FogEnd = 100000
+        game:GetService("Lighting").GlobalShadows = false
+        game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Fullbright";
+            Text = "Everything is now bright!";
+            Duration = 3;
+        })
+    else
+        game:GetService("Lighting").Brightness = 1
+        game:GetService("Lighting").ClockTime = 12
+        game:GetService("Lighting").FogEnd = 100000
+        game:GetService("Lighting").GlobalShadows = true
+        game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+    end
+end)
+
 -- Section: Actions
 CreateSection("⚙️ ACTIONS")
 
+CreateButton("⚡ Instant Cloner", Color3.fromRGB(255, 180, 0), function()
+    local success, err = pcall(function()
+        local character = LocalPlayer.Character
+        if not character then error("Character not found") end
+        
+        local humanoid = character:FindFirstChild("Humanoid")
+        if not humanoid then error("Humanoid not found") end
+        
+        -- Unequip current tool
+        for _, tool in ipairs(character:GetChildren()) do
+            if tool:IsA("Tool") then
+                humanoid:UnequipTools()
+                task.wait(0.1)
+                break
+            end
+        end
+        
+        local backpack = LocalPlayer.Backpack
+        local cloner = backpack:FindFirstChild("Quantum Cloner")
+        if not cloner then error("Quantum Cloner not found in inventory!") end
+        
+        humanoid:EquipTool(cloner)
+        task.wait()
+        
+        local useRemote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RE/UseItem")
+        useRemote:FireServer()
+        task.wait()
+        
+        local clonerRemote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RE/QuantumCloner/OnTeleport")
+        clonerRemote:FireServer()
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Instant Cloner";
+            Text = "Cloner activated!";
+            Duration = 3;
+        })
+    end)
+    
+    if not success then
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Cloner Error";
+            Text = tostring(err);
+            Duration = 3;
+        })
+    end
+end)
+
 CreateButton("🔄 Rejoin Server", Color3.fromRGB(100, 150, 255), function()
     game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+end)
+
+CreateButton("🌐 Server Hop", Color3.fromRGB(0, 200, 255), function()
+    local TeleportService = game:GetService("TeleportService")
+    local HttpService = game:GetService("HttpService")
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Server Hop";
+        Text = "Finding new server...";
+        Duration = 3;
+    })
+    
+    local success, result = pcall(function()
+        local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        
+        for _, server in pairs(servers.data) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                break
+            end
+        end
+    end)
+    
+    if not success then
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Server Hop Failed";
+            Text = "Could not find server";
+            Duration = 3;
+        })
+    end
 end)
 
 CreateButton("❌ Kick Self", Color3.fromRGB(255, 80, 100), function()
