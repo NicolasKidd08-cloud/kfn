@@ -92,12 +92,60 @@ local function ToggleFastWalk(enabled)
 end
 
 -- ═══════════════════════════════════════════════════════════
--- TELEPORT SYSTEM
+-- TELEPORT SYSTEM + ESP
 -- ═══════════════════════════════════════════════════════════
+
+local SavedPosESP = nil
+
+local function CreateSavedPosESP()
+    if SavedPosESP then
+        SavedPosESP:Destroy()
+    end
+    
+    if not Config.SavedPosition then return end
+    
+    -- Create part at saved position
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(4, 0.5, 4)
+    part.Position = Config.SavedPosition.Position
+    part.Anchored = true
+    part.CanCollide = false
+    part.Transparency = 0.5
+    part.Color = Color3.fromRGB(147, 51, 234)
+    part.Material = Enum.Material.Neon
+    part.Parent = Workspace
+    
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 100, 0, 50)
+    billboard.Adornee = part
+    billboard.AlwaysOnTop = true
+    billboard.Parent = part
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = "💾 SAVED"
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 16
+    label.TextStrokeTransparency = 0.5
+    label.Parent = billboard
+    
+    -- Pulse animation
+    local pulse = TweenService:Create(
+        part,
+        TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {Transparency = 0.8, Size = Vector3.new(5, 0.5, 5)}
+    )
+    pulse:Play()
+    
+    SavedPosESP = part
+end
 
 local function SavePosition()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         Config.SavedPosition = LocalPlayer.Character.HumanoidRootPart.CFrame
+        CreateSavedPosESP()
         warn("✅ Position saved!")
         return true
     end
@@ -538,7 +586,42 @@ end
 -- POPULATE TABS
 -- ═══════════════════════════════════════════════════════════
 
+-- Info label (like "NOCLIP + FAST WALK" in 22S Hub)
+local function CreateInfoLabel(parent, text, emoji)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 35)
+    frame.BackgroundTransparency = 1
+    frame.ZIndex = 4
+    frame.Parent = parent
+    
+    local emojiLabel = Instance.new("TextLabel")
+    emojiLabel.Size = UDim2.new(0, 25, 0, 25)
+    emojiLabel.Position = UDim2.new(0, 5, 0.5, -12.5)
+    emojiLabel.BackgroundTransparency = 1
+    emojiLabel.Text = emoji
+    emojiLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+    emojiLabel.Font = Enum.Font.GothamBold
+    emojiLabel.TextSize = 16
+    emojiLabel.ZIndex = 5
+    emojiLabel.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -35, 1, 0)
+    label.Position = UDim2.new(0, 35, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.ZIndex = 5
+    label.Parent = frame
+    
+    return frame
+end
+
 -- MAIN TAB
+CreateInfoLabel(MainTab, "NOCLIP + FAST WALK", "✨")
 CreateToggle(MainTab, "NOCLIP + FAST WALK", "✨", false, function(enabled)
     Config.NoClip = enabled
     Config.FastWalk = enabled
@@ -555,13 +638,57 @@ CreateButton(FeaturesTab, "SAVE POSITION", "💾", function()
     SavePosition()
 end)
 
+CreateButton(FeaturesTab, "NOCLIP TO SAVED", "⚡", function()
+    if not Config.SavedPosition then
+        warn("❌ No position saved!")
+        return
+    end
+    
+    -- Enable noclip
+    ToggleNoClip(true)
+    
+    -- Fast movement to saved position
+    task.spawn(function()
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local hrp = char.HumanoidRootPart
+            local targetPos = Config.SavedPosition.Position
+            
+            -- Fast noclip movement (10 studs per frame)
+            while (hrp.Position - targetPos).Magnitude > 5 do
+                local direction = (targetPos - hrp.Position).Unit
+                hrp.CFrame = hrp.CFrame + (direction * 10)
+                task.wait()
+            end
+            
+            -- Snap to exact position
+            hrp.CFrame = Config.SavedPosition
+            
+            -- Disable noclip after reaching
+            task.wait(0.5)
+            ToggleNoClip(false)
+        end
+    end)
+end)
+
 CreateButton(FeaturesTab, "TP TO SAVED", "📍", function()
     TeleportToSaved()
+end)
+
+CreateButton(FeaturesTab, "CLEAR SAVED POSITION", "🗑️", function()
+    Config.SavedPosition = nil
+    if SavedPosESP then
+        SavedPosESP:Destroy()
+        SavedPosESP = nil
+    end
+    warn("🗑️ Saved position cleared!")
 end)
 
 CreateButton(FeaturesTab, "TP FORWARD", "➡️", function()
     TeleportForward(10)
 end)
+
+CreateInfoLabel(FeaturesTab, "INSTA STEAL - Auto TP to saved & back when stealing", "⚡")
 
 CreateToggle(FeaturesTab, "INSTA STEAL", "⚡", false, function(enabled)
     Config.InstaStealing = enabled
