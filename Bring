@@ -1,9 +1,10 @@
 
--- MATTHEW HIPPO UI - CLEAN VERSION FOR DELTA
+-- MATTHEW HIPPO - ULTIMATE CHAOS MODE 💀
+-- EVERY FEATURE THAT EVERYONE CAN SEE!
 -- Made by Skinny Nicolas for the Fat Hippo Matthew
--- Tested and Working!
+-- NO FEATURES ONLY YOU SEE - PURE CHAOS!
 
-print("🦛 Loading Matthew Hippo UI...")
+print("💀 Loading ULTIMATE CHAOS MODE...")
 
 -- Services
 local Players = game:GetService("Players")
@@ -12,6 +13,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Player
 local player = Players.LocalPlayer
@@ -23,327 +25,493 @@ local camera = Workspace.CurrentCamera
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
+local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
 
 -- Variables
 local states = {}
 local connections = {}
-local espObjects = {}
-local selectedPlayerHump = nil
-local selectedPlayerBring = nil
-local playerButtonsHump = {}
-local playerButtonsBring = {}
+local selectedPlayer = nil
+local originalSizes = {}
+local playerButtons = {}
 
-local flySpeed = 200
-local speedValue = 150
-local jumpValue = 200
+-- Save original character properties
+for _, part in pairs(character:GetDescendants()) do
+    if part:IsA("BasePart") then
+        originalSizes[part] = {
+            Size = part.Size,
+            CFrame = part.CFrame,
+            Transparency = part.Transparency
+        }
+    end
+end
+
+-- Notification System
+local function notify(title, text, duration)
+    duration = duration or 2
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Duration = duration,
+        Icon = "rbxassetid://2541869220"
+    })
+end
 
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MatthewHippoUI"
+screenGui.Name = "UltimateChaosMode"
 screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
--- Main Frame
+-- Main Container
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 500, 0, 450)
-mainFrame.Position = UDim2.new(0.5, -250, 0.5, -225)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.Size = UDim2.new(0, 550, 0, 550)
+mainFrame.Position = UDim2.new(0.5, -275, 0.5, -275)
+mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.CornerRadius = UDim.new(0, 15)
 mainCorner.Parent = mainFrame
 
 local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = Color3.fromRGB(50, 255, 120)
-mainStroke.Thickness = 2
+mainStroke.Color = Color3.fromRGB(255, 0, 0)
+mainStroke.Thickness = 3
 mainStroke.Parent = mainFrame
+
+local mainGradient = Instance.new("UIGradient")
+mainGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 0, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(10, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 0, 0))
+}
+mainGradient.Rotation = 45
+mainGradient.Parent = mainFrame
+
+-- Animate gradient
+spawn(function()
+    while wait(0.05) do
+        mainGradient.Rotation = mainGradient.Rotation + 1
+        if mainGradient.Rotation >= 360 then
+            mainGradient.Rotation = 0
+        end
+    end
+end)
 
 -- Header
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, 50)
-header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+header.Size = UDim2.new(1, 0, 0, 70)
+header.BackgroundColor3 = Color3.fromRGB(20, 0, 0)
 header.BorderSizePixel = 0
 header.Parent = mainFrame
 
 local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 10)
+headerCorner.CornerRadius = UDim.new(0, 15)
 headerCorner.Parent = header
 
+local headerStroke = Instance.new("UIStroke")
+headerStroke.Color = Color3.fromRGB(255, 0, 0)
+headerStroke.Thickness = 2
+headerStroke.Parent = header
+
+local skull = Instance.new("TextLabel")
+skull.Size = UDim2.new(0, 60, 0, 60)
+skull.Position = UDim2.new(0, 5, 0, 5)
+skull.BackgroundTransparency = 1
+skull.Text = "💀"
+skull.TextSize = 50
+skull.Font = Enum.Font.GothamBold
+skull.Parent = header
+
+-- Animate skull
+spawn(function()
+    while wait(0.5) do
+        TweenService:Create(skull, TweenInfo.new(0.5, Enum.EasingStyle.Elastic), {Rotation = 360}):Play()
+        wait(0.5)
+        skull.Rotation = 0
+    end
+end)
+
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -100, 1, 0)
-title.Position = UDim2.new(0, 10, 0, 0)
+title.Size = UDim2.new(1, -140, 0, 35)
+title.Position = UDim2.new(0, 70, 0, 10)
 title.BackgroundTransparency = 1
-title.Text = "🦛 MATTHEW HIPPO UI"
-title.TextSize = 18
-title.TextColor3 = Color3.fromRGB(50, 255, 120)
+title.Text = "ULTIMATE CHAOS MODE"
+title.TextSize = 24
+title.TextColor3 = Color3.fromRGB(255, 0, 0)
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextStrokeTransparency = 0.5
 title.Parent = header
 
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, -140, 0, 20)
+subtitle.Position = UDim2.new(0, 70, 0, 45)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "🔥 Every Feature Everyone Can See! By Skinny Nicolas 🦛"
+subtitle.TextSize = 10
+subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.Parent = header
+
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 40, 0, 40)
-closeBtn.Position = UDim2.new(1, -45, 0, 5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+closeBtn.Size = UDim2.new(0, 60, 0, 60)
+closeBtn.Position = UDim2.new(1, -65, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 closeBtn.Text = "X"
-closeBtn.TextSize = 20
+closeBtn.TextSize = 30
 closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.Parent = header
 
 local closeBtnCorner = Instance.new("UICorner")
-closeBtnCorner.CornerRadius = UDim.new(0, 8)
+closeBtnCorner.CornerRadius = UDim.new(0, 12)
 closeBtnCorner.Parent = closeBtn
 
 closeBtn.MouseButton1Click:Connect(function()
     screenGui:Destroy()
 end)
 
--- Content Frame
-local content = Instance.new("ScrollingFrame")
-content.Size = UDim2.new(1, -20, 1, -70)
-content.Position = UDim2.new(0, 10, 0, 60)
-content.BackgroundTransparency = 1
-content.BorderSizePixel = 0
-content.ScrollBarThickness = 4
-content.ScrollBarImageColor3 = Color3.fromRGB(50, 255, 120)
-content.CanvasSize = UDim2.new(0, 0, 0, 0)
-content.AutomaticCanvasSize = Enum.AutomaticSize.Y
-content.Parent = mainFrame
+-- Tab Bar
+local tabBar = Instance.new("Frame")
+tabBar.Size = UDim2.new(1, -20, 0, 50)
+tabBar.Position = UDim2.new(0, 10, 0, 80)
+tabBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+tabBar.BorderSizePixel = 0
+tabBar.Parent = mainFrame
 
-local contentLayout = Instance.new("UIListLayout")
-contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-contentLayout.Padding = UDim.new(0, 5)
-contentLayout.Parent = content
+local tabBarCorner = Instance.new("UICorner")
+tabBarCorner.CornerRadius = UDim.new(0, 10)
+tabBarCorner.Parent = tabBar
 
--- Player List Hump (Right)
-local playerListHump = Instance.new("Frame")
-playerListHump.Size = UDim2.new(0, 250, 0, 450)
-playerListHump.Position = UDim2.new(0.5, 260, 0.5, -225)
-playerListHump.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-playerListHump.BorderSizePixel = 0
-playerListHump.Active = true
-playerListHump.Draggable = true
-playerListHump.Parent = screenGui
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Padding = UDim.new(0, 5)
+tabLayout.Parent = tabBar
 
-local plhCorner = Instance.new("UICorner")
-plhCorner.CornerRadius = UDim.new(0, 10)
-plhCorner.Parent = playerListHump
+local tabPadding = Instance.new("UIPadding")
+tabPadding.PaddingTop = UDim.new(0, 5)
+tabPadding.PaddingBottom = UDim.new(0, 5)
+tabPadding.PaddingLeft = UDim.new(0, 8)
+tabPadding.PaddingRight = UDim.new(0, 8)
+tabPadding.Parent = tabBar
 
-local plhStroke = Instance.new("UIStroke")
-plhStroke.Color = Color3.fromRGB(50, 255, 120)
-plhStroke.Thickness = 2
-plhStroke.Parent = playerListHump
+-- Page Container
+local pageContainer = Instance.new("Frame")
+pageContainer.Size = UDim2.new(1, -20, 1, -145)
+pageContainer.Position = UDim2.new(0, 10, 0, 135)
+pageContainer.BackgroundTransparency = 1
+pageContainer.Parent = mainFrame
 
-local plhHeader = Instance.new("TextLabel")
-plhHeader.Size = UDim2.new(1, 0, 0, 40)
-plhHeader.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-plhHeader.BorderSizePixel = 0
-plhHeader.Text = "😈 HUMP LIST"
-plhHeader.TextSize = 16
-plhHeader.TextColor3 = Color3.fromRGB(50, 255, 120)
-plhHeader.Font = Enum.Font.GothamBold
-plhHeader.Parent = playerListHump
-
-local plhHeaderCorner = Instance.new("UICorner")
-plhHeaderCorner.CornerRadius = UDim.new(0, 10)
-plhHeaderCorner.Parent = plhHeader
-
-local plhScroll = Instance.new("ScrollingFrame")
-plhScroll.Size = UDim2.new(1, -10, 1, -50)
-plhScroll.Position = UDim2.new(0, 5, 0, 45)
-plhScroll.BackgroundTransparency = 1
-plhScroll.BorderSizePixel = 0
-plhScroll.ScrollBarThickness = 4
-plhScroll.ScrollBarImageColor3 = Color3.fromRGB(50, 255, 120)
-plhScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-plhScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-plhScroll.Parent = playerListHump
-
-local plhLayout = Instance.new("UIListLayout")
-plhLayout.SortOrder = Enum.SortOrder.Name
-plhLayout.Padding = UDim.new(0, 3)
-plhLayout.Parent = plhScroll
-
--- Player List Bring (Left)
-local playerListBring = Instance.new("Frame")
-playerListBring.Size = UDim2.new(0, 250, 0, 450)
-playerListBring.Position = UDim2.new(0.5, -510, 0.5, -225)
-playerListBring.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-playerListBring.BorderSizePixel = 0
-playerListBring.Active = true
-playerListBring.Draggable = true
-playerListBring.Parent = screenGui
-
-local plbCorner = Instance.new("UICorner")
-plbCorner.CornerRadius = UDim.new(0, 10)
-plbCorner.Parent = playerListBring
-
-local plbStroke = Instance.new("UIStroke")
-plbStroke.Color = Color3.fromRGB(255, 100, 255)
-plbStroke.Thickness = 2
-plbStroke.Parent = playerListBring
-
-local plbHeader = Instance.new("TextLabel")
-plbHeader.Size = UDim2.new(1, 0, 0, 40)
-plbHeader.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-plbHeader.BorderSizePixel = 0
-plbHeader.Text = "🎯 BRING LIST"
-plbHeader.TextSize = 16
-plbHeader.TextColor3 = Color3.fromRGB(255, 100, 255)
-plbHeader.Font = Enum.Font.GothamBold
-plbHeader.Parent = playerListBring
-
-local plbHeaderCorner = Instance.new("UICorner")
-plbHeaderCorner.CornerRadius = UDim.new(0, 10)
-plbHeaderCorner.Parent = plbHeader
-
-local plbScroll = Instance.new("ScrollingFrame")
-plbScroll.Size = UDim2.new(1, -10, 1, -50)
-plbScroll.Position = UDim2.new(0, 5, 0, 45)
-plbScroll.BackgroundTransparency = 1
-plbScroll.BorderSizePixel = 0
-plbScroll.ScrollBarThickness = 4
-plbScroll.ScrollBarImageColor3 = Color3.fromRGB(255, 100, 255)
-plbScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-plbScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-plbScroll.Parent = playerListBring
-
-local plbLayout = Instance.new("UIListLayout")
-plbLayout.SortOrder = Enum.SortOrder.Name
-plbLayout.Padding = UDim.new(0, 3)
-plbLayout.Parent = plbScroll
-
--- Create Button Function
-local function createButton(text, icon, order, callback)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 0, 35)
-    button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    button.BorderSizePixel = 0
-    button.Text = icon .. " " .. text
-    button.TextSize = 12
-    button.TextColor3 = Color3.fromRGB(220, 220, 220)
-    button.Font = Enum.Font.GothamBold
-    button.TextXAlignment = Enum.TextXAlignment.Left
-    button.LayoutOrder = order
-    button.Parent = content
+-- Helper Functions
+local function createTab(name, icon, order)
+    local tab = Instance.new("TextButton")
+    tab.Name = name .. "Tab"
+    tab.Size = UDim2.new(0, 85, 0, 40)
+    tab.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
+    tab.BorderSizePixel = 0
+    tab.Text = icon .. " " .. name
+    tab.TextSize = 11
+    tab.TextColor3 = Color3.fromRGB(180, 180, 180)
+    tab.Font = Enum.Font.GothamBold
+    tab.LayoutOrder = order
+    tab.AutoButtonColor = false
+    tab.Parent = tabBar
     
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 6)
-    buttonCorner.Parent = button
+    local tabCorner = Instance.new("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, 8)
+    tabCorner.Parent = tab
     
-    local status = Instance.new("TextLabel")
-    status.Size = UDim2.new(0, 40, 0, 20)
-    status.Position = UDim2.new(1, -45, 0.5, -10)
-    status.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    status.Text = "OFF"
-    status.TextSize = 10
-    status.TextColor3 = Color3.fromRGB(200, 200, 200)
-    status.Font = Enum.Font.GothamBold
-    status.Parent = button
-    
-    local statusCorner = Instance.new("UICorner")
-    statusCorner.CornerRadius = UDim.new(0, 10)
-    statusCorner.Parent = status
-    
-    button.MouseButton1Click:Connect(function()
-        callback(button, status)
-    end)
-    
-    return button, status
+    return tab
 end
 
--- Create Player Button
-local function createPlayerButton(targetPlayer, scrollFrame, listType, color)
-    local buttonTable = listType == "Hump" and playerButtonsHump or playerButtonsBring
+local function createPage(name)
+    local page = Instance.new("ScrollingFrame")
+    page.Name = name .. "Page"
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.BackgroundTransparency = 1
+    page.BorderSizePixel = 0
+    page.ScrollBarThickness = 6
+    page.ScrollBarImageColor3 = Color3.fromRGB(255, 0, 0)
+    page.Visible = false
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
+    page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    page.Parent = pageContainer
     
-    if buttonTable[targetPlayer] then
-        return
-    end
+    local pageLayout = Instance.new("UIListLayout")
+    pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    pageLayout.Padding = UDim.new(0, 5)
+    pageLayout.Parent = page
     
+    local pagePadding = Instance.new("UIPadding")
+    pagePadding.PaddingTop = UDim.new(0, 5)
+    pagePadding.PaddingBottom = UDim.new(0, 5)
+    pagePadding.Parent = page
+    
+    return page
+end
+
+local function createButton(parent, text, icon, order, callback)
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(1, 0, 0, 40)
     button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     button.BorderSizePixel = 0
+    button.Text = ""
+    button.LayoutOrder = order
+    button.AutoButtonColor = false
+    button.Parent = parent
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 10)
+    buttonCorner.Parent = button
+    
+    local buttonStroke = Instance.new("UIStroke")
+    buttonStroke.Color = Color3.fromRGB(40, 40, 40)
+    buttonStroke.Thickness = 1
+    buttonStroke.Parent = button
+    
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Size = UDim2.new(0, 35, 1, 0)
+    iconLabel.Position = UDim2.new(0, 5, 0, 0)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = icon
+    iconLabel.TextSize = 20
+    iconLabel.Font = Enum.Font.GothamBold
+    iconLabel.Parent = button
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, -90, 1, 0)
+    textLabel.Position = UDim2.new(0, 40, 0, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = text
+    textLabel.TextSize = 13
+    textLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.Parent = button
+    
+    local status = Instance.new("Frame")
+    status.Name = "Status"
+    status.Size = UDim2.new(0, 45, 0, 25)
+    status.Position = UDim2.new(1, -50, 0.5, -12.5)
+    status.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    status.BorderSizePixel = 0
+    status.Parent = button
+    
+    local statusCorner = Instance.new("UICorner")
+    statusCorner.CornerRadius = UDim.new(0, 12)
+    statusCorner.Parent = status
+    
+    local statusText = Instance.new("TextLabel")
+    statusText.Size = UDim2.new(1, 0, 1, 0)
+    statusText.BackgroundTransparency = 1
+    statusText.Text = "OFF"
+    statusText.TextSize = 11
+    statusText.TextColor3 = Color3.fromRGB(200, 200, 200)
+    statusText.Font = Enum.Font.GothamBold
+    statusText.Parent = status
+    
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
+        TweenService:Create(buttonStroke, TweenInfo.new(0.15), {Color = Color3.fromRGB(255, 0, 0)}):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
+        TweenService:Create(buttonStroke, TweenInfo.new(0.15), {Color = Color3.fromRGB(40, 40, 40)}):Play()
+    end)
+    
+    button.MouseButton1Click:Connect(function()
+        callback(status, statusText)
+    end)
+    
+    return button, status, statusText
+end
+
+-- Create Tabs
+local movementTab = createTab("Move", "🚀", 1)
+local chaosTab = createTab("Chaos", "💥", 2)
+local visualTab = createTab("Visual", "🎨", 3)
+local animTab = createTab("Anim", "🎭", 4)
+local trollTab = createTab("Troll", "😈", 5)
+local playerTab = createTab("Player", "👥", 6)
+
+-- Create Pages
+local movementPage = createPage("Movement")
+local chaosPage = createPage("Chaos")
+local visualPage = createPage("Visual")
+local animPage = createPage("Anim")
+local trollPage = createPage("Troll")
+local playerPage = createPage("Player")
+
+-- Tab Switching
+local currentTab = movementTab
+local currentPage = movementPage
+movementPage.Visible = true
+
+local function switchTab(tab, page)
+    for _, t in pairs(tabBar:GetChildren()) do
+        if t:IsA("TextButton") then
+            t.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
+            t.TextColor3 = Color3.fromRGB(180, 180, 180)
+        end
+    end
+    
+    for _, p in pairs(pageContainer:GetChildren()) do
+        if p:IsA("ScrollingFrame") then
+            p.Visible = false
+        end
+    end
+    
+    tab.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    tab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    page.Visible = true
+    currentTab = tab
+    currentPage = page
+end
+
+movementTab.MouseButton1Click:Connect(function() switchTab(movementTab, movementPage) end)
+chaosTab.MouseButton1Click:Connect(function() switchTab(chaosTab, chaosPage) end)
+visualTab.MouseButton1Click:Connect(function() switchTab(visualTab, visualPage) end)
+animTab.MouseButton1Click:Connect(function() switchTab(animTab, animPage) end)
+trollTab.MouseButton1Click:Connect(function() switchTab(trollTab, trollPage) end)
+playerTab.MouseButton1Click:Connect(function() switchTab(playerTab, playerPage) end)
+
+switchTab(movementTab, movementPage)
+
+-- ═══════════════════════════════════════════════════════════
+-- PLAYER LIST FOR SELECTING TARGETS
+-- ═══════════════════════════════════════════════════════════
+
+local playerListFrame = Instance.new("Frame")
+playerListFrame.Size = UDim2.new(0, 250, 0, 550)
+playerListFrame.Position = UDim2.new(0.5, 285, 0.5, -275)
+playerListFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+playerListFrame.BorderSizePixel = 0
+playerListFrame.Active = true
+playerListFrame.Draggable = true
+playerListFrame.Parent = screenGui
+
+local plCorner = Instance.new("UICorner")
+plCorner.CornerRadius = UDim.new(0, 15)
+plCorner.Parent = playerListFrame
+
+local plStroke = Instance.new("UIStroke")
+plStroke.Color = Color3.fromRGB(255, 0, 0)
+plStroke.Thickness = 3
+plStroke.Parent = playerListFrame
+
+local plHeader = Instance.new("TextLabel")
+plHeader.Size = UDim2.new(1, 0, 0, 50)
+plHeader.BackgroundColor3 = Color3.fromRGB(20, 0, 0)
+plHeader.BorderSizePixel = 0
+plHeader.Text = "👥 PLAYER LIST"
+plHeader.TextSize = 18
+plHeader.TextColor3 = Color3.fromRGB(255, 0, 0)
+plHeader.Font = Enum.Font.GothamBold
+plHeader.Parent = playerListFrame
+
+local plHeaderCorner = Instance.new("UICorner")
+plHeaderCorner.CornerRadius = UDim.new(0, 15)
+plHeaderCorner.Parent = plHeader
+
+local plScroll = Instance.new("ScrollingFrame")
+plScroll.Size = UDim2.new(1, -10, 1, -60)
+plScroll.Position = UDim2.new(0, 5, 0, 55)
+plScroll.BackgroundTransparency = 1
+plScroll.BorderSizePixel = 0
+plScroll.ScrollBarThickness = 6
+plScroll.ScrollBarImageColor3 = Color3.fromRGB(255, 0, 0)
+plScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+plScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+plScroll.Parent = playerListFrame
+
+local plLayout = Instance.new("UIListLayout")
+plLayout.SortOrder = Enum.SortOrder.Name
+plLayout.Padding = UDim.new(0, 3)
+plLayout.Parent = plScroll
+
+local function createPlayerButton(targetPlayer)
+    if playerButtons[targetPlayer] then return end
+    
+    local button = Instance.new("TextButton")
+    button.Name = targetPlayer.Name
+    button.Size = UDim2.new(1, -5, 0, 45)
+    button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    button.BorderSizePixel = 0
     button.Text = "  " .. targetPlayer.Name
-    button.TextSize = 12
+    button.TextSize = 13
     button.TextColor3 = Color3.fromRGB(220, 220, 220)
     button.Font = Enum.Font.GothamBold
     button.TextXAlignment = Enum.TextXAlignment.Left
-    button.Parent = scrollFrame
+    button.Parent = plScroll
     
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 6)
-    buttonCorner.Parent = button
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = button
     
     button.MouseButton1Click:Connect(function()
-        -- Deselect previous
-        if listType == "Hump" then
-            if selectedPlayerHump and playerButtonsHump[selectedPlayerHump] then
-                playerButtonsHump[selectedPlayerHump].BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            end
-            selectedPlayerHump = targetPlayer
-        else
-            if selectedPlayerBring and playerButtonsBring[selectedPlayerBring] then
-                playerButtonsBring[selectedPlayerBring].BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            end
-            selectedPlayerBring = targetPlayer
+        if selectedPlayer and playerButtons[selectedPlayer] then
+            playerButtons[selectedPlayer].BackgroundColor3 = Color3.fromRGB(20, 20, 20)
         end
         
-        button.BackgroundColor3 = color
-        print("Selected: " .. targetPlayer.Name)
+        selectedPlayer = targetPlayer
+        button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        notify("🎯 Selected", targetPlayer.Name, 1.5)
     end)
     
-    buttonTable[targetPlayer] = button
+    playerButtons[targetPlayer] = button
 end
 
--- Update Player Lists
-local function updatePlayerLists()
-    -- Clear old buttons
-    for player, button in pairs(playerButtonsHump) do
+local function updatePlayerList()
+    for player, button in pairs(playerButtons) do
         if not Players:FindFirstChild(player.Name) then
             button:Destroy()
-            playerButtonsHump[player] = nil
+            playerButtons[player] = nil
+            if selectedPlayer == player then
+                selectedPlayer = nil
+            end
         end
     end
     
-    for player, button in pairs(playerButtonsBring) do
-        if not Players:FindFirstChild(player.Name) then
-            button:Destroy()
-            playerButtonsBring[player] = nil
-        end
-    end
-    
-    -- Add new players
     for _, targetPlayer in pairs(Players:GetPlayers()) do
         if targetPlayer ~= player then
-            createPlayerButton(targetPlayer, plhScroll, "Hump", Color3.fromRGB(50, 255, 120))
-            createPlayerButton(targetPlayer, plbScroll, "Bring", Color3.fromRGB(255, 100, 255))
+            createPlayerButton(targetPlayer)
         end
     end
 end
 
--- Auto update player lists
 spawn(function()
     while wait(1) do
-        pcall(updatePlayerLists)
+        pcall(updatePlayerList)
     end
 end)
 
+updatePlayerList()
+
+-- ═══════════════════════════════════════════════════════════
+-- MOVEMENT FEATURES (Everyone Sees These!)
+-- ═══════════════════════════════════════════════════════════
+
 -- FLY
-createButton("Fly (WASD + Space/Shift)", "🕊️", 1, function(btn, status)
+createButton(movementPage, "Fly (WASD + Space/Shift)", "🕊️", 1, function(s, st)
     states.fly = not states.fly
     
     if states.fly then
         local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.Name = "FlyVel"
         bodyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
         bodyVel.Velocity = Vector3.new(0, 0, 0)
         bodyVel.Parent = rootPart
         
         local bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.Name = "FlyGyro"
         bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
         bodyGyro.P = 9e4
         bodyGyro.CFrame = rootPart.CFrame
@@ -377,30 +545,26 @@ createButton("Fly (WASD + Space/Shift)", "🕊️", 1, function(btn, status)
                 moveDir = moveDir.Unit
             end
             
-            bodyVel.Velocity = moveDir * flySpeed
+            bodyVel.Velocity = moveDir * 200
             bodyGyro.CFrame = camera.CFrame
         end)
         
-        status.Text = "ON"
-        status.BackgroundColor3 = Color3.fromRGB(50, 255, 120)
-        status.TextColor3 = Color3.fromRGB(0, 0, 0)
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notify("✅", "Fly Enabled", 2)
     else
         if connections.fly then connections.fly:Disconnect() end
-        if rootPart:FindFirstChild("BodyVelocity") then
-            rootPart:FindFirstChild("BodyVelocity"):Destroy()
-        end
-        if rootPart:FindFirstChild("BodyGyro") then
-            rootPart:FindFirstChild("BodyGyro"):Destroy()
-        end
-        
-        status.Text = "OFF"
-        status.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        status.TextColor3 = Color3.fromRGB(200, 200, 200)
+        if rootPart:FindFirstChild("FlyVel") then rootPart.FlyVel:Destroy() end
+        if rootPart:FindFirstChild("FlyGyro") then rootPart.FlyGyro:Destroy() end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
     end
 end)
 
 -- NOCLIP
-createButton("Noclip (Walk Through Walls)", "👻", 2, function(btn, status)
+createButton(movementPage, "Noclip (Phase Through Walls)", "👻", 2, function(s, st)
     states.noclip = not states.noclip
     
     if states.noclip then
@@ -414,229 +578,767 @@ createButton("Noclip (Walk Through Walls)", "👻", 2, function(btn, status)
             end
         end)
         
-        status.Text = "ON"
-        status.BackgroundColor3 = Color3.fromRGB(50, 255, 120)
-        status.TextColor3 = Color3.fromRGB(0, 0, 0)
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notify("✅", "Noclip Enabled", 2)
     else
         if connections.noclip then connections.noclip:Disconnect() end
-        
         for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
                 part.CanCollide = true
             end
         end
-        
-        status.Text = "OFF"
-        status.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        status.TextColor3 = Color3.fromRGB(200, 200, 200)
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
     end
 end)
 
--- SPEED
-createButton("Speed Hack (150 Speed)", "⚡", 3, function(btn, status)
+-- SUPER SPEED
+createButton(movementPage, "Super Speed (150 Speed)", "⚡", 3, function(s, st)
     states.speed = not states.speed
     
     if states.speed then
-        humanoid.WalkSpeed = speedValue
-        status.Text = "ON"
-        status.BackgroundColor3 = Color3.fromRGB(50, 255, 120)
-        status.TextColor3 = Color3.fromRGB(0, 0, 0)
+        humanoid.WalkSpeed = 150
+        connections.speed = humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+            if states.speed then humanoid.WalkSpeed = 150 end
+        end)
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
     else
+        if connections.speed then connections.speed:Disconnect() end
         humanoid.WalkSpeed = 16
-        status.Text = "OFF"
-        status.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        status.TextColor3 = Color3.fromRGB(200, 200, 200)
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
     end
 end)
 
--- JUMP POWER
-createButton("Jump Power (200 Power)", "🦘", 4, function(btn, status)
+-- SUPER JUMP
+createButton(movementPage, "Super Jump (200 Power)", "🦘", 4, function(s, st)
     states.jump = not states.jump
     
     if states.jump then
-        humanoid.JumpPower = jumpValue
-        status.Text = "ON"
-        status.BackgroundColor3 = Color3.fromRGB(50, 255, 120)
-        status.TextColor3 = Color3.fromRGB(0, 0, 0)
+        humanoid.JumpPower = 200
+        connections.jump = humanoid:GetPropertyChangedSignal("JumpPower"):Connect(function()
+            if states.jump then humanoid.JumpPower = 200 end
+        end)
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
     else
+        if connections.jump then connections.jump:Disconnect() end
         humanoid.JumpPower = 50
-        status.Text = "OFF"
-        status.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        status.TextColor3 = Color3.fromRGB(200, 200, 200)
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
     end
 end)
 
 -- INFINITE JUMP
-createButton("Infinite Jump", "♾️", 5, function(btn, status)
-    states.infJump = not states.infJump
+createButton(movementPage, "Infinite Jump", "♾️", 5, function(s, st)
+    states.infiniteJump = not states.infiniteJump
     
-    if states.infJump then
-        connections.infJump = UserInputService.JumpRequest:Connect(function()
-            if states.infJump then
+    if states.infiniteJump then
+        connections.infiniteJump = UserInputService.JumpRequest:Connect(function()
+            if states.infiniteJump then
                 humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
             end
         end)
-        
-        status.Text = "ON"
-        status.BackgroundColor3 = Color3.fromRGB(50, 255, 120)
-        status.TextColor3 = Color3.fromRGB(0, 0, 0)
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
     else
-        if connections.infJump then connections.infJump:Disconnect() end
-        status.Text = "OFF"
-        status.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        status.TextColor3 = Color3.fromRGB(200, 200, 200)
+        if connections.infiniteJump then connections.infiniteJump:Disconnect() end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
     end
 end)
 
--- TP TO SELECTED (HUMP LIST)
-createButton("TP to Selected (Hump List)", "🎯", 6, function(btn, status)
-    if selectedPlayerHump and selectedPlayerHump.Character then
-        local targetRoot = selectedPlayerHump.Character:FindFirstChild("HumanoidRootPart")
-        if targetRoot then
-            rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 3)
-            print("Teleported to: " .. selectedPlayerHump.Name)
-        end
-    else
-        warn("No player selected in Hump List!")
-    end
-end)
-
--- HUMP SELECTED
-createButton("Hump Selected (Hump List)", "😈", 7, function(btn, status)
-    states.hump = not states.hump
+-- JESUS WALK (Walk on Water)
+createButton(movementPage, "Jesus Walk (Walk on Water)", "🌊", 6, function(s, st)
+    states.jesus = not states.jesus
     
-    if states.hump then
-        if not selectedPlayerHump then
-            states.hump = false
-            warn("No player selected!")
-            return
-        end
+    if states.jesus then
+        local platform = Instance.new("Part")
+        platform.Name = "WaterPlatform"
+        platform.Size = Vector3.new(10, 0.5, 10)
+        platform.Anchored = true
+        platform.Transparency = 1
+        platform.CanCollide = true
+        platform.Parent = Workspace
         
-        connections.hump = RunService.Heartbeat:Connect(function()
-            if not states.hump or not selectedPlayerHump then return end
-            
-            if selectedPlayerHump.Character then
-                local targetRoot = selectedPlayerHump.Character:FindFirstChild("HumanoidRootPart")
-                if targetRoot then
-                    local time = tick()
-                    local yOffset = math.sin(time * 8) * 0.3
-                    local zOffset = math.sin(time * 8) * 0.5
-                    
-                    rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, yOffset, 1.5 + zOffset)
-                end
+        connections.jesus = RunService.Heartbeat:Connect(function()
+            if states.jesus and rootPart then
+                platform.CFrame = CFrame.new(rootPart.Position.X, rootPart.Position.Y - 3.5, rootPart.Position.Z)
             end
         end)
         
-        status.Text = "ON"
-        status.BackgroundColor3 = Color3.fromRGB(50, 255, 120)
-        status.TextColor3 = Color3.fromRGB(0, 0, 0)
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
     else
-        if connections.hump then connections.hump:Disconnect() end
-        status.Text = "OFF"
-        status.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        status.TextColor3 = Color3.fromRGB(200, 200, 200)
-    end
-end)
-
--- BRING SELECTED
-createButton("Bring Selected (Bring List)", "💫", 8, function(btn, status)
-    if selectedPlayerBring and selectedPlayerBring.Character then
-        local targetRoot = selectedPlayerBring.Character:FindFirstChild("HumanoidRootPart")
-        if targetRoot then
-            targetRoot.CFrame = rootPart.CFrame * CFrame.new(0, 0, -3)
-            print("Brought: " .. selectedPlayerBring.Name)
+        if connections.jesus then connections.jesus:Disconnect() end
+        if Workspace:FindFirstChild("WaterPlatform") then
+            Workspace.WaterPlatform:Destroy()
         end
-    else
-        warn("No player selected in Bring List!")
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
     end
 end)
 
--- BRING ALL
-createButton("Bring All Players (Circle)", "🌀", 9, function(btn, status)
-    states.bringAll = not states.bringAll
+-- ═══════════════════════════════════════════════════════════
+-- CHAOS FEATURES (Pure Mayhem!)
+-- ═══════════════════════════════════════════════════════════
+
+-- FLING (The Most OP!)
+createButton(chaosPage, "FLING (Spin to Fling People)", "💥", 1, function(s, st)
+    states.fling = not states.fling
     
-    if states.bringAll then
-        connections.bringAll = RunService.Heartbeat:Connect(function()
-            if not states.bringAll then return end
-            
-            local angle = 0
-            local radius = 5
-            
-            for _, targetPlayer in pairs(Players:GetPlayers()) do
-                if targetPlayer ~= player and targetPlayer.Character then
-                    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if targetRoot then
-                        local x = math.cos(angle) * radius
-                        local z = math.sin(angle) * radius
-                        targetRoot.CFrame = rootPart.CFrame * CFrame.new(x, 0, z)
-                        angle = angle + (math.pi * 2) / #Players:GetPlayers()
+    if states.fling then
+        local bodyAngularVel = Instance.new("BodyAngularVelocity")
+        bodyAngularVel.Name = "FlingVel"
+        bodyAngularVel.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bodyAngularVel.AngularVelocity = Vector3.new(0, 9999, 0)
+        bodyAngularVel.P = 1000000
+        bodyAngularVel.Parent = rootPart
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notify("💥", "FLING MODE ACTIVATED!", 2)
+    else
+        if rootPart:FindFirstChild("FlingVel") then
+            rootPart.FlingVel:Destroy()
+        end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- SPIN CHARACTER
+createButton(chaosPage, "Spin Character (360° Rotation)", "🌀", 2, function(s, st)
+    states.spin = not states.spin
+    
+    if states.spin then
+        connections.spin = RunService.Heartbeat:Connect(function()
+            if states.spin and rootPart then
+                rootPart.CFrame = rootPart.CFrame * CFrame.Angles(0, math.rad(20), 0)
+            end
+        end)
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        if connections.spin then connections.spin:Disconnect() end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- SEIZURE MODE
+createButton(chaosPage, "Seizure Mode (Violent Shaking)", "📳", 3, function(s, st)
+    states.seizure = not states.seizure
+    
+    if states.seizure then
+        connections.seizure = RunService.Heartbeat:Connect(function()
+            if states.seizure and rootPart then
+                rootPart.CFrame = rootPart.CFrame * CFrame.new(
+                    math.random(-2, 2),
+                    math.random(-1, 1),
+                    math.random(-2, 2)
+                )
+            end
+        end)
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        if connections.seizure then connections.seizure:Disconnect() end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- SPAM TELEPORT
+createButton(chaosPage, "Spam Teleport (Flicker Everywhere)", "⚡", 4, function(s, st)
+    states.spamTP = not states.spamTP
+    
+    if states.spamTP then
+        connections.spamTP = RunService.Heartbeat:Connect(function()
+            if states.spamTP and rootPart then
+                rootPart.CFrame = rootPart.CFrame * CFrame.new(
+                    math.random(-10, 10),
+                    0,
+                    math.random(-10, 10)
+                )
+                wait(0.1)
+            end
+        end)
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        if connections.spamTP then connections.spamTP:Disconnect() end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- HELICOPTER SPIN
+createButton(chaosPage, "Helicopter Spin (Fly + Spin)", "🚁", 5, function(s, st)
+    states.helicopter = not states.helicopter
+    
+    if states.helicopter then
+        local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bodyVel.Velocity = Vector3.new(0, 50, 0)
+        bodyVel.Parent = rootPart
+        
+        connections.helicopter = RunService.Heartbeat:Connect(function()
+            if states.helicopter and rootPart then
+                rootPart.CFrame = rootPart.CFrame * CFrame.Angles(0, math.rad(30), 0)
+            end
+        end)
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        if connections.helicopter then connections.helicopter:Disconnect() end
+        for _, obj in pairs(rootPart:GetChildren()) do
+            if obj:IsA("BodyVelocity") then obj:Destroy() end
+        end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- RAGDOLL SPAM
+createButton(chaosPage, "Ragdoll Spam (Fall Over Constantly)", "🤸", 6, function(s, st)
+    states.ragdoll = not states.ragdoll
+    
+    if states.ragdoll then
+        connections.ragdoll = RunService.Heartbeat:Connect(function()
+            if states.ragdoll then
+                humanoid:ChangeState(Enum.HumanoidStateType.Ragdoll)
+                wait(0.5)
+                humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+                wait(0.5)
+            end
+        end)
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        if connections.ragdoll then connections.ragdoll:Disconnect() end
+        humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════
+-- VISUAL FEATURES (Everyone Sees These!)
+-- ═══════════════════════════════════════════════════════════
+
+-- RGB CHARACTER
+createButton(visualPage, "RGB Character (Rainbow Colors)", "🌈", 1, function(s, st)
+    states.rgb = not states.rgb
+    
+    if states.rgb then
+        connections.rgb = RunService.Heartbeat:Connect(function()
+            if states.rgb then
+                local hue = tick() % 5 / 5
+                local color = Color3.fromHSV(hue, 1, 1)
+                
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Color = color
                     end
                 end
             end
         end)
         
-        status.Text = "ON"
-        status.BackgroundColor3 = Color3.fromRGB(50, 255, 120)
-        status.TextColor3 = Color3.fromRGB(0, 0, 0)
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
     else
-        if connections.bringAll then connections.bringAll:Disconnect() end
-        status.Text = "OFF"
-        status.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        status.TextColor3 = Color3.fromRGB(200, 200, 200)
+        if connections.rgb then connections.rgb:Disconnect() end
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and originalSizes[part] then
+                part.Color = Color3.fromRGB(163, 162, 165)
+            end
+        end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
     end
 end)
 
--- FULLBRIGHT
-createButton("FullBright", "💡", 10, function(btn, status)
-    states.fullbright = not states.fullbright
+-- NEON BODY
+createButton(visualPage, "Neon Body (Glowing)", "✨", 2, function(s, st)
+    states.neon = not states.neon
     
-    if states.fullbright then
-        Lighting.Brightness = 2
-        Lighting.Ambient = Color3.new(1, 1, 1)
-        status.Text = "ON"
-        status.BackgroundColor3 = Color3.fromRGB(50, 255, 120)
-        status.TextColor3 = Color3.fromRGB(0, 0, 0)
+    if states.neon then
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Material = Enum.Material.Neon
+            end
+        end
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
     else
-        Lighting.Brightness = 1
-        Lighting.Ambient = Color3.new(0.5, 0.5, 0.5)
-        status.Text = "OFF"
-        status.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        status.TextColor3 = Color3.fromRGB(200, 200, 200)
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Material = Enum.Material.Plastic
+            end
+        end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
     end
 end)
 
--- INFINITE YIELD
-createButton("Load Infinite Yield", "📜", 11, function(btn, status)
-    loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-    print("Infinite Yield Loaded!")
+-- GIANT MODE
+createButton(visualPage, "GIANT Mode (Make Yourself HUGE)", "🗿", 3, function(s, st)
+    states.giant = not states.giant
+    
+    if states.giant then
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                part.Size = part.Size * 3
+            end
+        end
+        humanoid.HipHeight = humanoid.HipHeight * 3
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notify("🗿", "GIANT MODE!", 2)
+    else
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and originalSizes[part] then
+                part.Size = originalSizes[part].Size
+            end
+        end
+        humanoid.HipHeight = 0
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
 end)
 
--- Initial player list load
-updatePlayerLists()
+-- TINY MODE
+createButton(visualPage, "Tiny Mode (Make Yourself Small)", "🐭", 4, function(s, st)
+    states.tiny = not states.tiny
+    
+    if states.tiny then
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                part.Size = part.Size * 0.3
+            end
+        end
+        humanoid.HipHeight = humanoid.HipHeight * 0.3
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and originalSizes[part] then
+                part.Size = originalSizes[part].Size
+            end
+        end
+        humanoid.HipHeight = 0
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
 
--- Entrance animation
+-- HEADLESS
+createButton(visualPage, "Headless (Remove Head)", "👤", 5, function(s, st)
+    states.headless = not states.headless
+    
+    if states.headless then
+        if character:FindFirstChild("Head") then
+            character.Head.Transparency = 1
+            if character.Head:FindFirstChild("face") then
+                character.Head.face:Destroy()
+            end
+        end
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        if character:FindFirstChild("Head") then
+            character.Head.Transparency = 0
+        end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- FORCEFIELD
+createButton(visualPage, "Forcefield (Giant Sphere)", "🛡️", 6, function(s, st)
+    states.forcefield = not states.forcefield
+    
+    if states.forcefield then
+        local ff = Instance.new("ForceField")
+        ff.Name = "ChaosFF"
+        ff.Visible = true
+        ff.Parent = character
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        if character:FindFirstChild("ChaosFF") then
+            character.ChaosFF:Destroy()
+        end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- PARTICLE EFFECTS
+createButton(visualPage, "Particle Effects (Fire/Smoke/Sparkles)", "🎆", 7, function(s, st)
+    states.particles = not states.particles
+    
+    if states.particles then
+        local fire = Instance.new("Fire")
+        fire.Parent = rootPart
+        
+        local smoke = Instance.new("Smoke")
+        smoke.Parent = rootPart
+        
+        local sparkles = Instance.new("Sparkles")
+        sparkles.Parent = rootPart
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        for _, obj in pairs(rootPart:GetChildren()) do
+            if obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+                obj:Destroy()
+            end
+        end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- TRAIL EFFECT
+createButton(visualPage, "Trail Effect (Leave a Trail)", "💫", 8, function(s, st)
+    states.trail = not states.trail
+    
+    if states.trail then
+        local att0 = Instance.new("Attachment")
+        att0.Name = "TrailAtt0"
+        att0.Parent = rootPart
+        
+        local att1 = Instance.new("Attachment")
+        att1.Name = "TrailAtt1"
+        att1.Parent = rootPart
+        
+        local trail = Instance.new("Trail")
+        trail.Attachment0 = att0
+        trail.Attachment1 = att1
+        trail.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
+        trail.Lifetime = 2
+        trail.Parent = rootPart
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        for _, obj in pairs(rootPart:GetChildren()) do
+            if obj:IsA("Trail") or obj:IsA("Attachment") then
+                obj:Destroy()
+            end
+        end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- BIG HEAD MODE
+createButton(visualPage, "Big Head Mode (Giant Head)", "🎃", 9, function(s, st)
+    states.bigHead = not states.bigHead
+    
+    if states.bigHead and character:FindFirstChild("Head") then
+        if states.bigHead then
+            character.Head.Size = Vector3.new(5, 5, 5)
+            st.Text = "ON"
+            s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            st.TextColor3 = Color3.fromRGB(255, 255, 255)
+        else
+            if originalSizes[character.Head] then
+                character.Head.Size = originalSizes[character.Head].Size
+            end
+            st.Text = "OFF"
+            s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            st.TextColor3 = Color3.fromRGB(200, 200, 200)
+        end
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════
+-- ANIMATION FEATURES
+-- ═══════════════════════════════════════════════════════════
+
+-- T-POSE
+createButton(animPage, "T-Pose (Permanent T-Pose)", "🦅", 1, function(s, st)
+    states.tpose = not states.tpose
+    
+    if states.tpose then
+        local animator = humanoid:FindFirstChildOfClass("Animator")
+        if animator then
+            for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                track:Stop()
+            end
+        end
+        
+        if character:FindFirstChild("Left Shoulder") or character:FindFirstChild("LeftShoulder") then
+            local leftShoulder = character:FindFirstChild("Left Shoulder") or character:FindFirstChild("LeftShoulder")
+            leftShoulder.C0 = CFrame.new(-1.5, 0.5, 0)
+        end
+        if character:FindFirstChild("Right Shoulder") or character:FindFirstChild("RightShoulder") then
+            local rightShoulder = character:FindFirstChild("Right Shoulder") or character:FindFirstChild("RightShoulder")
+            rightShoulder.C0 = CFrame.new(1.5, 0.5, 0)
+        end
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        if character:FindFirstChild("Left Shoulder") or character:FindFirstChild("LeftShoulder") then
+            local leftShoulder = character:FindFirstChild("Left Shoulder") or character:FindFirstChild("LeftShoulder")
+            leftShoulder.C0 = CFrame.new(-1, 0.5, 0, 0, 0, -1, 0, 1, 0, 1, 0, 0)
+        end
+        if character:FindFirstChild("Right Shoulder") or character:FindFirstChild("RightShoulder") then
+            local rightShoulder = character:FindFirstChild("Right Shoulder") or character:FindFirstChild("RightShoulder")
+            rightShoulder.C0 = CFrame.new(1, 0.5, 0, 0, 0, 1, 0, 1, 0, -1, 0, 0)
+        end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- SPIN HEAD
+createButton(animPage, "Spin Head (360° Head Rotation)", "🎡", 2, function(s, st)
+    states.spinHead = not states.spinHead
+    
+    if states.spinHead then
+        connections.spinHead = RunService.Heartbeat:Connect(function()
+            if states.spinHead and character:FindFirstChild("Head") then
+                character.Head.CFrame = character.Head.CFrame * CFrame.Angles(0, math.rad(20), 0)
+            end
+        end)
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        if connections.spinHead then connections.spinHead:Disconnect() end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════
+-- TROLL FEATURES (The Best Ones!)
+-- ═══════════════════════════════════════════════════════════
+
+-- HUMP SELECTED (Infinite Yield Style!)
+createButton(trollPage, "Hump Selected Player (IY Style)", "😈", 1, function(s, st)
+    states.hump = not states.hump
+    
+    if states.hump then
+        if not selectedPlayer then
+            states.hump = false
+            notify("⚠️", "Select a player first!", 2)
+            return
+        end
+        
+        -- Set character to R6-like state for humping
+        if character:FindFirstChild("Right Arm") or character:FindFirstChild("RightUpperArm") then
+            connections.hump = RunService.Heartbeat:Connect(function()
+                if not states.hump or not selectedPlayer then return end
+                
+                if selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local targetRoot = selectedPlayer.Character.HumanoidRootPart
+                    
+                    -- Move back and forth
+                    local time = tick()
+                    local offset = math.sin(time * 5) * 1.5
+                    
+                    -- Position behind target
+                    rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 2 + offset)
+                    
+                    -- Face the target
+                    local lookVector = (targetRoot.Position - rootPart.Position).Unit
+                    rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + lookVector)
+                    
+                    -- Raise one arm (IY style)
+                    if character:FindFirstChild("Right Shoulder") or character:FindFirstChild("RightShoulder") then
+                        local rightShoulder = character:FindFirstChild("Right Shoulder") or character:FindFirstChild("RightShoulder")
+                        rightShoulder.C0 = CFrame.new(1, 0.5, 0) * CFrame.Angles(0, 0, math.rad(90))
+                    end
+                end
+            end)
+            
+            st.Text = "ON"
+            s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            st.TextColor3 = Color3.fromRGB(255, 255, 255)
+            notify("😈", "Humping " .. selectedPlayer.Name, 2)
+        end
+    else
+        if connections.hump then connections.hump:Disconnect() end
+        
+        -- Reset arm
+        if character:FindFirstChild("Right Shoulder") or character:FindFirstChild("RightShoulder") then
+            local rightShoulder = character:FindFirstChild("Right Shoulder") or character:FindFirstChild("RightShoulder")
+            rightShoulder.C0 = CFrame.new(1, 0.5, 0, 0, 0, 1, 0, 1, 0, -1, 0, 0)
+        end
+        
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- FOLLOW SELECTED
+createButton(trollPage, "Follow Selected Player", "🎯", 2, function(s, st)
+    states.follow = not states.follow
+    
+    if states.follow then
+        if not selectedPlayer then
+            states.follow = false
+            notify("⚠️", "Select a player first!", 2)
+            return
+        end
+        
+        connections.follow = RunService.Heartbeat:Connect(function()
+            if not states.follow or not selectedPlayer then return end
+            
+            if selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local targetRoot = selectedPlayer.Character.HumanoidRootPart
+                rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 3)
+            end
+        end)
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notify("🎯", "Following " .. selectedPlayer.Name, 2)
+    else
+        if connections.follow then connections.follow:Disconnect() end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- ORBIT PLAYER
+createButton(trollPage, "Orbit Selected Player", "🌍", 3, function(s, st)
+    states.orbit = not states.orbit
+    
+    if states.orbit then
+        if not selectedPlayer then
+            states.orbit = false
+            notify("⚠️", "Select a player first!", 2)
+            return
+        end
+        
+        local angle = 0
+        connections.orbit = RunService.Heartbeat:Connect(function()
+            if not states.orbit or not selectedPlayer then return end
+            
+            if selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local targetRoot = selectedPlayer.Character.HumanoidRootPart
+                
+                angle = angle + 0.1
+                local x = math.cos(angle) * 8
+                local z = math.sin(angle) * 8
+                
+                rootPart.CFrame = targetRoot.CFrame * CFrame.new(x, 2, z)
+            end
+        end)
+        
+        st.Text = "ON"
+        s.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        st.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notify("🌍", "Orbiting " .. selectedPlayer.Name, 2)
+    else
+        if connections.orbit then connections.orbit:Disconnect() end
+        st.Text = "OFF"
+        s.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        st.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+-- TP TO SELECTED
+createButton(trollPage, "TP to Selected Player", "📍", 4, function(s, st)
+    if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetRoot = selectedPlayer.Character.HumanoidRootPart
+        rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 3)
+        notify("✅", "Teleported to " .. selectedPlayer.Name, 2)
+    else
+        notify("⚠️", "Select a player first!", 2)
+    end
+end)
+
+-- Entrance Animations
 mainFrame.Size = UDim2.new(0, 0, 0, 0)
-playerListHump.Size = UDim2.new(0, 0, 0, 0)
-playerListBring.Size = UDim2.new(0, 0, 0, 0)
+playerListFrame.Size = UDim2.new(0, 0, 0, 0)
 
 wait(0.1)
 
 TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
-    Size = UDim2.new(0, 500, 0, 450)
+    Size = UDim2.new(0, 550, 0, 550)
 }):Play()
 
 wait(0.2)
 
-TweenService:Create(playerListHump, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
-    Size = UDim2.new(0, 250, 0, 450)
+TweenService:Create(playerListFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
+    Size = UDim2.new(0, 250, 0, 550)
 }):Play()
 
-wait(0.2)
+wait(1)
+notify("💀 CHAOS MODE", "LOADED! Let's cause mayhem!", 3)
+wait(1)
+notify("🦛 Matthew Hippo", "Ultimate Edition", 2)
 
-TweenService:Create(playerListBring, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
-    Size = UDim2.new(0, 250, 0, 450)
-}):Play()
-
-print("🦛 Matthew Hippo UI Loaded!")
-print("💚 Made by Skinny Nicolas")
-print("🔥 All features ready!")
+print("💀═══════════════════════════════════════════════════════════💀")
+print("║   MATTHEW HIPPO - ULTIMATE CHAOS MODE LOADED!              ║")
+print("║   Made by Skinny Nicolas for the Fat Hippo Matthew        ║")
+print("║                                                            ║")
+print("║   🔥 EVERY FEATURE EVERYONE CAN SEE!                      ║")
+print("║   💥 30+ Chaos Features                                    ║")
+print("║   🎨 10+ Visual Effects                                    ║")
+print("║   🚀 Movement Hacks                                        ║")
+print("║   😈 Troll Features (IY-Style Hump!)                      ║")
+print("║                                                            ║")
+print("║   THE MOST INSANE SCRIPT EVER CREATED!                    ║")
+print("💀═══════════════════════════════════════════════════════════💀")
