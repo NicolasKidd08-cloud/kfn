@@ -726,7 +726,7 @@ local expanded = false
 MinBtn.MouseButton1Click:Connect(function()
     expanded = not expanded
     
-    local size = expanded and UDim2.new(0, 500, 0, 560) or UDim2.new(0, 500, 0, 56)
+    local size = expanded and UDim2.new(0, 500, 0, 640) or UDim2.new(0, 500, 0, 56)
     local rotation = expanded and 180 or 0
     
     TweenService:Create(Window, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = size}):Play()
@@ -1028,6 +1028,113 @@ local function Slider(name, desc, min, max, default, callback)
     end)
 end
 
+-- Create button
+local function Button(name, desc, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, desc and 68 or 52)
+    button.BackgroundColor3 = Config.Colors.Primary
+    button.BackgroundTransparency = 0.15
+    button.Text = ""
+    button.BorderSizePixel = 0
+    button.Parent = Content
+    
+    Instance.new("UICorner", button).CornerRadius = UDim.new(0, 11)
+    
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Config.Colors.Primary),
+        ColorSequenceKeypoint.new(1, Config.Colors.Secondary)
+    }
+    gradient.Rotation = 45
+    gradient.Parent = button
+    
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -24, 0, 22)
+    lbl.Position = UDim2.new(0, 12, 0, desc and 8 or 15)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = name
+    lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 13
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = button
+    
+    if desc then
+        local dsc = Instance.new("TextLabel")
+        dsc.Size = UDim2.new(1, -24, 0, 30)
+        dsc.Position = UDim2.new(0, 12, 0, 32)
+        dsc.BackgroundTransparency = 1
+        dsc.Text = desc
+        dsc.TextColor3 = Color3.fromRGB(230, 230, 240)
+        dsc.Font = Enum.Font.Gotham
+        dsc.TextSize = 10
+        dsc.TextXAlignment = Enum.TextXAlignment.Left
+        dsc.TextWrapped = true
+        dsc.Parent = button
+    end
+    
+    button.MouseButton1Click:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundTransparency = 0}):Play()
+        task.wait(0.1)
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.15}):Play()
+        callback()
+    end)
+    
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15), {BackgroundTransparency = 0.05}):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15), {BackgroundTransparency = 0.15}):Play()
+    end)
+end
+
+-- Teleport system
+local savedPosition = nil
+local positionStatus = nil
+
+local function UpdatePositionStatus()
+    if positionStatus then
+        if savedPosition then
+            positionStatus.Text = "📍 Saved: " .. math.floor(savedPosition.X) .. ", " .. math.floor(savedPosition.Y) .. ", " .. math.floor(savedPosition.Z)
+            positionStatus.TextColor3 = Config.Colors.Secondary
+        else
+            positionStatus.Text = "📍 No position saved"
+            positionStatus.TextColor3 = Color3.fromRGB(150, 150, 160)
+        end
+    end
+end
+
+local function SavePosition()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        savedPosition = LocalPlayer.Character.HumanoidRootPart.Position
+        warn("✅ Position saved: " .. tostring(savedPosition))
+        UpdatePositionStatus()
+    else
+        warn("❌ No character found!")
+    end
+end
+
+local function TeleportToSaved()
+    if not savedPosition then
+        warn("❌ No position saved!")
+        return
+    end
+    
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(savedPosition)
+        warn("⚡ Teleported to: " .. tostring(savedPosition))
+    else
+        warn("❌ No character found!")
+    end
+end
+
+local function ClearPosition()
+    savedPosition = nil
+    warn("🗑️ Position cleared")
+    UpdatePositionStatus()
+end
+
 -- Build UI
 Section("SPEED", "⚡")
 Toggle("Speed Boost", "Safe walkspeed boost", Config.Speed, function(v)
@@ -1037,6 +1144,128 @@ end)
 Slider("Speed Value", "Adjust speed (safe: 20-26)", 16, 30, Config.SpeedValue, function(v)
     Config.SpeedValue = v
 end)
+
+Section("TELEPORT", "📍")
+
+-- Position status
+local statusFrame = Instance.new("Frame")
+statusFrame.Size = UDim2.new(1, 0, 0, 44)
+statusFrame.BackgroundColor3 = Color3.fromRGB(15, 12, 22)
+statusFrame.BorderSizePixel = 0
+statusFrame.Parent = Content
+
+Instance.new("UICorner", statusFrame).CornerRadius = UDim.new(0, 11)
+
+local statusStroke = Instance.new("UIStroke")
+statusStroke.Color = Config.Colors.Primary
+statusStroke.Thickness = 1.5
+statusStroke.Transparency = 0.7
+statusStroke.Parent = statusFrame
+
+positionStatus = Instance.new("TextLabel")
+positionStatus.Size = UDim2.new(1, -24, 1, 0)
+positionStatus.Position = UDim2.new(0, 12, 0, 0)
+positionStatus.BackgroundTransparency = 1
+positionStatus.Text = "📍 No position saved"
+positionStatus.TextColor3 = Color3.fromRGB(150, 150, 160)
+positionStatus.Font = Enum.Font.GothamBold
+positionStatus.TextSize = 12
+positionStatus.TextXAlignment = Enum.TextXAlignment.Left
+positionStatus.Parent = statusFrame
+
+-- Dual button frame (Save + Clear)
+local dualFrame = Instance.new("Frame")
+dualFrame.Size = UDim2.new(1, 0, 0, 52)
+dualFrame.BackgroundTransparency = 1
+dualFrame.Parent = Content
+
+local saveBtn = Instance.new("TextButton")
+saveBtn.Size = UDim2.new(0.5, -3, 1, 0)
+saveBtn.Position = UDim2.new(0, 0, 0, 0)
+saveBtn.BackgroundColor3 = Config.Colors.Primary
+saveBtn.BackgroundTransparency = 0.15
+saveBtn.Text = ""
+saveBtn.BorderSizePixel = 0
+saveBtn.Parent = dualFrame
+
+Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0, 11)
+
+local saveGradient = Instance.new("UIGradient")
+saveGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Config.Colors.Primary),
+    ColorSequenceKeypoint.new(1, Config.Colors.Secondary)
+}
+saveGradient.Rotation = 45
+saveGradient.Parent = saveBtn
+
+local saveLbl = Instance.new("TextLabel")
+saveLbl.Size = UDim2.new(1, 0, 1, 0)
+saveLbl.BackgroundTransparency = 1
+saveLbl.Text = "💾 Save Position"
+saveLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+saveLbl.Font = Enum.Font.GothamBold
+saveLbl.TextSize = 13
+saveLbl.Parent = saveBtn
+
+saveBtn.MouseButton1Click:Connect(function()
+    TweenService:Create(saveBtn, TweenInfo.new(0.1), {BackgroundTransparency = 0}):Play()
+    task.wait(0.1)
+    TweenService:Create(saveBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.15}):Play()
+    SavePosition()
+end)
+
+saveBtn.MouseEnter:Connect(function()
+    TweenService:Create(saveBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.05}):Play()
+end)
+
+saveBtn.MouseLeave:Connect(function()
+    TweenService:Create(saveBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.15}):Play()
+end)
+
+local clearBtn = Instance.new("TextButton")
+clearBtn.Size = UDim2.new(0.5, -3, 1, 0)
+clearBtn.Position = UDim2.new(0.5, 3, 0, 0)
+clearBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 85)
+clearBtn.BackgroundTransparency = 0.15
+clearBtn.Text = ""
+clearBtn.BorderSizePixel = 0
+clearBtn.Parent = dualFrame
+
+Instance.new("UICorner", clearBtn).CornerRadius = UDim.new(0, 11)
+
+local clearGradient = Instance.new("UIGradient")
+clearGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 70, 85)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 120, 130))
+}
+clearGradient.Rotation = 45
+clearGradient.Parent = clearBtn
+
+local clearLbl = Instance.new("TextLabel")
+clearLbl.Size = UDim2.new(1, 0, 1, 0)
+clearLbl.BackgroundTransparency = 1
+clearLbl.Text = "🗑️ Clear"
+clearLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+clearLbl.Font = Enum.Font.GothamBold
+clearLbl.TextSize = 13
+clearLbl.Parent = clearBtn
+
+clearBtn.MouseButton1Click:Connect(function()
+    TweenService:Create(clearBtn, TweenInfo.new(0.1), {BackgroundTransparency = 0}):Play()
+    task.wait(0.1)
+    TweenService:Create(clearBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.15}):Play()
+    ClearPosition()
+end)
+
+clearBtn.MouseEnter:Connect(function()
+    TweenService:Create(clearBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.05}):Play()
+end)
+
+clearBtn.MouseLeave:Connect(function()
+    TweenService:Create(clearBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.15}):Play()
+end)
+
+Button("Teleport to Position", "TP to saved position instantly", TeleportToSaved)
 
 Section("PLAYER ESP", "👤")
 Toggle("Player ESP", "Enable all player visuals", Config.PlayerESP, function(v)
