@@ -1,348 +1,304 @@
--- MATTHEW HIPPO - ULTRA MINIMAL (GUARANTEED LOAD!)
+-- MATTHEW HIPPO - FASTEST LOAD EVER
+-- Ultra minimal for Delta
 
-print("Starting script...")
+wait(0.1)
 
-local p = game.Players.LocalPlayer
+local p = game:GetService("Players").LocalPlayer
 local c = p.Character or p.CharacterAdded:Wait()
-local r = c:WaitForChild("HumanoidRootPart")
-local h = c:WaitForChild("Humanoid")
+local r = c.HumanoidRootPart
+local h = c.Humanoid
+local cam = workspace.CurrentCamera
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
 
-print("Character loaded...")
-
-local g = Instance.new("ScreenGui", p.PlayerGui)
+local g = Instance.new("ScreenGui")
 g.ResetOnSpawn = false
+g.Name = "MH"
+g.Parent = p:WaitForChild("PlayerGui")
 
-print("GUI created...")
-
-local m = Instance.new("Frame", g)
-m.Size = UDim2.new(0, 350, 0, 400)
-m.Position = UDim2.new(0.5, -175, 0.5, -200)
-m.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+local m = Instance.new("Frame")
+m.Size = UDim2.new(0, 320, 0, 380)
+m.Position = UDim2.new(0.5, -160, 0.5, -190)
+m.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+m.BorderColor3 = Color3.fromRGB(255, 0, 0)
 m.BorderSizePixel = 2
-m.BorderColor3 = Color3.new(1, 0, 0)
 m.Active = true
 m.Draggable = true
+m.Parent = g
 
-print("Main frame created...")
+local hd = Instance.new("Frame")
+hd.Size = UDim2.new(1, 0, 0, 35)
+hd.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+hd.BorderSizePixel = 0
+hd.Parent = m
 
-local t = Instance.new("TextLabel", m)
-t.Size = UDim2.new(1, 0, 0, 40)
-t.BackgroundColor3 = Color3.new(0.15, 0, 0)
-t.BorderSizePixel = 0
-t.Text = "MATTHEW HIPPO"
-t.TextColor3 = Color3.new(1, 0, 0)
-t.TextSize = 18
-t.Font = Enum.Font.GothamBold
+local ti = Instance.new("TextLabel")
+ti.Size = UDim2.new(1, -40, 1, 0)
+ti.BackgroundTransparency = 1
+ti.Text = "MATTHEW HIPPO"
+ti.TextColor3 = Color3.fromRGB(255, 0, 0)
+ti.TextSize = 16
+ti.Font = Enum.Font.GothamBold
+ti.Parent = hd
 
-local x = Instance.new("TextButton", m)
-x.Size = UDim2.new(0, 35, 0, 35)
-x.Position = UDim2.new(1, -38, 0, 3)
-x.BackgroundColor3 = Color3.new(0.5, 0, 0)
-x.Text = "X"
-x.TextColor3 = Color3.new(1, 1, 1)
-x.TextSize = 16
-x.Font = Enum.Font.GothamBold
-x.MouseButton1Click:Connect(function() g:Destroy() end)
+local cl = Instance.new("TextButton")
+cl.Size = UDim2.new(0, 30, 0, 30)
+cl.Position = UDim2.new(1, -32, 0, 2.5)
+cl.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+cl.BorderSizePixel = 0
+cl.Text = "X"
+cl.TextColor3 = Color3.fromRGB(255, 255, 255)
+cl.TextSize = 14
+cl.Font = Enum.Font.GothamBold
+cl.Parent = hd
+cl.MouseButton1Click:Connect(function() g:Destroy() end)
 
-print("Header created...")
+local sc = Instance.new("ScrollingFrame")
+sc.Size = UDim2.new(1, -10, 1, -45)
+sc.Position = UDim2.new(0, 5, 0, 40)
+sc.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+sc.BorderSizePixel = 0
+sc.ScrollBarThickness = 4
+sc.Parent = m
 
-local s = Instance.new("ScrollingFrame", m)
-s.Size = UDim2.new(1, -10, 1, -50)
-s.Position = UDim2.new(0, 5, 0, 45)
-s.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
-s.BorderSizePixel = 0
-s.ScrollBarThickness = 5
+local ly = Instance.new("UIListLayout")
+ly.Padding = UDim.new(0, 4)
+ly.Parent = sc
 
-local l = Instance.new("UIListLayout", s)
-l.Padding = UDim.new(0, 5)
+local pd = Instance.new("UIPadding")
+pd.PaddingTop = UDim.new(0, 4)
+pd.PaddingLeft = UDim.new(0, 4)
+pd.PaddingRight = UDim.new(0, 4)
+pd.Parent = sc
 
-print("Scroll frame created...")
-
-local pl = Instance.new("Frame", g)
-pl.Size = UDim2.new(0, 180, 0, 400)
-pl.Position = UDim2.new(0.5, 185, 0.5, -200)
-pl.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+local pl = Instance.new("Frame")
+pl.Size = UDim2.new(0, 160, 0, 380)
+pl.Position = UDim2.new(0.5, 170, 0.5, -190)
+pl.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+pl.BorderColor3 = Color3.fromRGB(255, 0, 0)
 pl.BorderSizePixel = 2
-pl.BorderColor3 = Color3.new(1, 0, 0)
 pl.Active = true
 pl.Draggable = true
+pl.Parent = g
 
-local pt = Instance.new("TextLabel", pl)
-pt.Size = UDim2.new(1, 0, 0, 35)
-pt.BackgroundColor3 = Color3.new(0.15, 0, 0)
-pt.BorderSizePixel = 0
+local ph = Instance.new("Frame")
+ph.Size = UDim2.new(1, 0, 0, 30)
+ph.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+ph.BorderSizePixel = 0
+ph.Parent = pl
+
+local pt = Instance.new("TextLabel")
+pt.Size = UDim2.new(1, 0, 1, 0)
+pt.BackgroundTransparency = 1
 pt.Text = "PLAYERS"
-pt.TextColor3 = Color3.new(1, 0, 0)
-pt.TextSize = 14
+pt.TextColor3 = Color3.fromRGB(255, 0, 0)
+pt.TextSize = 12
 pt.Font = Enum.Font.GothamBold
+pt.Parent = ph
 
-local ps = Instance.new("ScrollingFrame", pl)
-ps.Size = UDim2.new(1, -5, 1, -40)
-ps.Position = UDim2.new(0, 2.5, 0, 37.5)
-ps.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+local ps = Instance.new("ScrollingFrame")
+ps.Size = UDim2.new(1, -8, 1, -35)
+ps.Position = UDim2.new(0, 4, 0, 32)
+ps.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 ps.BorderSizePixel = 0
-ps.ScrollBarThickness = 5
+ps.ScrollBarThickness = 4
+ps.Parent = pl
 
-local ll = Instance.new("UIListLayout", ps)
-ll.Padding = UDim.new(0, 3)
+local pl2 = Instance.new("UIListLayout")
+pl2.Padding = UDim.new(0, 2)
+pl2.Parent = ps
 
-print("Player list created...")
+local pp = Instance.new("UIPadding")
+pp.PaddingTop = UDim.new(0, 2)
+pp.PaddingLeft = UDim.new(0, 2)
+pp.PaddingRight = UDim.new(0, 2)
+pp.Parent = ps
 
 local st = {}
 local cn = {}
 local sel = nil
 local pb = {}
 
-local function btn(txt, n, cb)
-    local b = Instance.new("TextButton", s)
-    b.Size = UDim2.new(1, -5, 0, 30)
-    b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    b.BorderSizePixel = 1
-    b.BorderColor3 = Color3.new(0.3, 0.3, 0.3)
-    b.Text = txt
-    b.TextColor3 = Color3.new(0.9, 0.9, 0.9)
-    b.TextSize = 11
-    b.Font = Enum.Font.GothamBold
-    b.Name = n
-    b.MouseButton1Click:Connect(function() cb(b) end)
-    return b
+local function b(t, c)
+    local f = Instance.new("TextButton")
+    f.Size = UDim2.new(1, -5, 0, 28)
+    f.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    f.BorderSizePixel = 1
+    f.BorderColor3 = Color3.fromRGB(60, 60, 60)
+    f.Text = t
+    f.TextColor3 = Color3.fromRGB(220, 220, 220)
+    f.TextSize = 11
+    f.Font = Enum.Font.GothamBold
+    f.Parent = sc
+    f.MouseButton1Click:Connect(function() c(f) end)
+    return f
 end
 
-local function plb(tp)
+local function pb2(tp)
     if pb[tp] then return end
-    local b = Instance.new("TextButton", ps)
-    b.Size = UDim2.new(1, -5, 0, 28)
-    b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    b.BorderSizePixel = 0
-    b.Text = tp.Name
-    b.TextColor3 = Color3.new(0.9, 0.9, 0.9)
-    b.TextSize = 10
-    b.Font = Enum.Font.GothamBold
-    b.MouseButton1Click:Connect(function()
-        if sel and pb[sel] then
-            pb[sel].BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-        end
+    local f = Instance.new("TextButton")
+    f.Size = UDim2.new(1, -4, 0, 26)
+    f.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    f.BorderSizePixel = 0
+    f.Text = tp.Name
+    f.TextColor3 = Color3.fromRGB(220, 220, 220)
+    f.TextSize = 10
+    f.Font = Enum.Font.Gotham
+    f.Parent = ps
+    f.MouseButton1Click:Connect(function()
+        if sel and pb[sel] then pb[sel].BackgroundColor3 = Color3.fromRGB(40, 40, 40) end
         sel = tp
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
+        f.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     end)
-    pb[tp] = b
-end
-
-local function up()
-    for tp, b in pairs(pb) do
-        if not game.Players:FindFirstChild(tp.Name) then
-            b:Destroy()
-            pb[tp] = nil
-            if sel == tp then sel = nil end
-        end
-    end
-    for _, tp in pairs(game.Players:GetPlayers()) do
-        if tp ~= p then plb(tp) end
-    end
+    pb[tp] = f
 end
 
 spawn(function()
     while wait(1) do
-        pcall(up)
-    end
-end)
-
-up()
-
-print("Creating buttons...")
-
--- FLY
-btn("FLY", "Fly", function(b)
-    st.fly = not st.fly
-    if st.fly then
-        local v = Instance.new("BodyVelocity", r)
-        v.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        local g = Instance.new("BodyGyro", r)
-        g.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        cn.fly = game:GetService("RunService").Heartbeat:Connect(function()
-            local m = Vector3.new(0, 0, 0)
-            local u = game:GetService("UserInputService")
-            local c = workspace.CurrentCamera
-            if u:IsKeyDown(Enum.KeyCode.W) then m = m + c.CFrame.LookVector end
-            if u:IsKeyDown(Enum.KeyCode.S) then m = m - c.CFrame.LookVector end
-            if u:IsKeyDown(Enum.KeyCode.A) then m = m - c.CFrame.RightVector end
-            if u:IsKeyDown(Enum.KeyCode.D) then m = m + c.CFrame.RightVector end
-            if u:IsKeyDown(Enum.KeyCode.Space) then m = m + Vector3.new(0, 1, 0) end
-            if u:IsKeyDown(Enum.KeyCode.LeftShift) then m = m - Vector3.new(0, 1, 0) end
-            v.Velocity = m.Unit * 200
-            g.CFrame = c.CFrame
-        end)
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
-    else
-        if cn.fly then cn.fly:Disconnect() end
-        for _, o in pairs(r:GetChildren()) do
-            if o:IsA("BodyVelocity") or o:IsA("BodyGyro") then o:Destroy() end
-        end
-        b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    end
-end)
-
--- NOCLIP
-btn("NOCLIP", "Noclip", function(b)
-    st.nc = not st.nc
-    if st.nc then
-        cn.nc = game:GetService("RunService").Stepped:Connect(function()
-            for _, v in pairs(c:GetDescendants()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
+        for tp, v in pairs(pb) do
+            if not game.Players:FindFirstChild(tp.Name) then
+                v:Destroy()
+                pb[tp] = nil
+                if sel == tp then sel = nil end
             end
-        end)
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
-    else
-        if cn.nc then cn.nc:Disconnect() end
-        b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    end
-end)
-
--- SPEED
-btn("SPEED", "Speed", function(b)
-    st.sp = not st.sp
-    if st.sp then
-        h.WalkSpeed = 150
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
-    else
-        h.WalkSpeed = 16
-        b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    end
-end)
-
--- JUMP
-btn("JUMP", "Jump", function(b)
-    st.jp = not st.jp
-    if st.jp then
-        h.JumpPower = 200
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
-    else
-        h.JumpPower = 50
-        b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    end
-end)
-
--- INF JUMP
-btn("INF JUMP", "InfJump", function(b)
-    st.ij = not st.ij
-    if st.ij then
-        cn.ij = game:GetService("UserInputService").JumpRequest:Connect(function()
-            h:ChangeState(Enum.HumanoidStateType.Jumping)
-        end)
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
-    else
-        if cn.ij then cn.ij:Disconnect() end
-        b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    end
-end)
-
--- HUMP
-btn("HUMP", "Hump", function(b)
-    st.hm = not st.hm
-    if st.hm then
-        if not sel then
-            st.hm = false
-            return
         end
+        for _, tp in pairs(game.Players:GetPlayers()) do
+            if tp ~= p then pb2(tp) end
+        end
+    end
+end)
+
+b("FLY", function(f)
+    st.f = not st.f
+    if st.f then
+        local v = Instance.new("BodyVelocity") v.MaxForce = Vector3.new(9e9,9e9,9e9) v.Parent = r
+        local g = Instance.new("BodyGyro") g.MaxTorque = Vector3.new(9e9,9e9,9e9) g.P = 9e4 g.Parent = r
+        cn.f = RS.Heartbeat:Connect(function()
+            local d = Vector3.new(0,0,0)
+            if UIS:IsKeyDown(Enum.KeyCode.W) then d = d + cam.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then d = d - cam.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then d = d - cam.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then d = d + cam.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then d = d + Vector3.new(0,1,0) end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then d = d - Vector3.new(0,1,0) end
+            v.Velocity = d.Unit * 200
+            g.CFrame = cam.CFrame
+        end)
+        f.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    else
+        if cn.f then cn.f:Disconnect() end
+        for _,o in pairs(r:GetChildren()) do if o:IsA("BodyVelocity") or o:IsA("BodyGyro") then o:Destroy() end end
+        f.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    end
+end)
+
+b("NOCLIP", function(f)
+    st.n = not st.n
+    if st.n then
+        cn.n = RS.Stepped:Connect(function()
+            for _,v in pairs(c:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
+        end)
+        f.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    else
+        if cn.n then cn.n:Disconnect() end
+        f.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    end
+end)
+
+b("SPEED", function(f)
+    st.s = not st.s
+    h.WalkSpeed = st.s and 150 or 16
+    f.BackgroundColor3 = st.s and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(40, 40, 40)
+end)
+
+b("JUMP", function(f)
+    st.j = not st.j
+    h.JumpPower = st.j and 200 or 50
+    f.BackgroundColor3 = st.j and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(40, 40, 40)
+end)
+
+b("INF JUMP", function(f)
+    st.i = not st.i
+    if st.i then
+        cn.i = UIS.JumpRequest:Connect(function() h:ChangeState(Enum.HumanoidStateType.Jumping) end)
+        f.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    else
+        if cn.i then cn.i:Disconnect() end
+        f.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    end
+end)
+
+b("HUMP", function(f)
+    st.h = not st.h
+    if st.h then
+        if not sel then st.h = false return end
         local w = c:FindFirstChild("UpperTorso") and c.UpperTorso:FindFirstChild("Waist") or r:FindFirstChild("RootJoint")
         local ow = w and w.C0
-        cn.hm = game:GetService("RunService").Heartbeat:Connect(function()
-            if not st.hm or not sel then
-                if w and ow then w.C0 = ow end
-                return
-            end
-            if sel.Character and sel.Character:FindFirstChild("HumanoidRootPart") then
-                local tr = sel.Character.HumanoidRootPart
-                local t = tick()
-                local th = math.sin(t * 10)
-                r.CFrame = tr.CFrame * CFrame.new(0, 0, 2 + th * 1.5) * CFrame.Angles(math.rad(10), 0, 0)
-                if w and ow then
-                    w.C0 = ow * CFrame.Angles(math.rad(th * 20), 0, 0)
-                end
-            end
+        cn.h = RS.Heartbeat:Connect(function()
+            if not st.h or not sel or not sel.Character or not sel.Character:FindFirstChild("HumanoidRootPart") then return end
+            local tr = sel.Character.HumanoidRootPart
+            local th = math.sin(tick() * 10)
+            r.CFrame = tr.CFrame * CFrame.new(0, 0, 2 + th * 1.5) * CFrame.Angles(math.rad(10), 0, 0)
+            if w and ow then w.C0 = ow * CFrame.Angles(math.rad(th * 20), 0, 0) end
         end)
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
+        f.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     else
-        if cn.hm then cn.hm:Disconnect() end
-        b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+        if cn.h then cn.h:Disconnect() end
+        f.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     end
 end)
 
--- TP
-btn("TP TO", "TP", function(b)
+b("TP TO", function(f)
     if sel and sel.Character and sel.Character:FindFirstChild("HumanoidRootPart") then
         r.CFrame = sel.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
     end
 end)
 
--- FOLLOW
-btn("FOLLOW", "Follow", function(b)
-    st.fw = not st.fw
-    if st.fw then
-        if not sel then
-            st.fw = false
-            return
-        end
-        cn.fw = game:GetService("RunService").Heartbeat:Connect(function()
+b("FOLLOW", function(f)
+    st.w = not st.w
+    if st.w then
+        if not sel then st.w = false return end
+        cn.w = RS.Heartbeat:Connect(function()
             if sel and sel.Character and sel.Character:FindFirstChild("HumanoidRootPart") then
                 r.CFrame = sel.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
             end
         end)
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
+        f.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     else
-        if cn.fw then cn.fw:Disconnect() end
-        b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+        if cn.w then cn.w:Disconnect() end
+        f.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     end
 end)
 
--- FLING
-btn("FLING", "Fling", function(b)
-    st.fl = not st.fl
-    if st.fl then
-        local sp = Instance.new("BodyAngularVelocity", r)
-        sp.MaxTorque = Vector3.new(0, 9e9, 0)
-        sp.AngularVelocity = Vector3.new(0, 100, 0)
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
+b("FLING", function(f)
+    st.l = not st.l
+    if st.l then
+        local s = Instance.new("BodyAngularVelocity") s.MaxTorque = Vector3.new(0,9e9,0) s.AngularVelocity = Vector3.new(0,100,0) s.Parent = r
+        f.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     else
-        for _, o in pairs(r:GetChildren()) do
-            if o:IsA("BodyAngularVelocity") then o:Destroy() end
-        end
-        b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+        for _,o in pairs(r:GetChildren()) do if o:IsA("BodyAngularVelocity") then o:Destroy() end end
+        f.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     end
 end)
 
--- SPIN
-btn("SPIN", "Spin", function(b)
-    st.sn = not st.sn
-    if st.sn then
-        cn.sn = game:GetService("RunService").Heartbeat:Connect(function()
-            r.CFrame = r.CFrame * CFrame.Angles(0, math.rad(15), 0)
-        end)
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
+b("SPIN", function(f)
+    st.p = not st.p
+    if st.p then
+        cn.p = RS.Heartbeat:Connect(function() r.CFrame = r.CFrame * CFrame.Angles(0, math.rad(15), 0) end)
+        f.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     else
-        if cn.sn then cn.sn:Disconnect() end
-        b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+        if cn.p then cn.p:Disconnect() end
+        f.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     end
 end)
 
--- HEADLESS
-btn("HEADLESS", "Headless", function(b)
-    st.hl = not st.hl
-    if st.hl and c:FindFirstChild("Head") then
-        c.Head.Transparency = 1
-        if c.Head:FindFirstChild("face") then
-            c.Head.face.Transparency = 1
-        end
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
-    else
-        if c:FindFirstChild("Head") then
-            c.Head.Transparency = 0
-            if c.Head:FindFirstChild("face") then
-                c.Head.face.Transparency = 0
-            end
-        end
-        b.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+b("HEADLESS", function(f)
+    st.d = not st.d
+    if c:FindFirstChild("Head") then
+        c.Head.Transparency = st.d and 1 or 0
+        if c.Head:FindFirstChild("face") then c.Head.face.Transparency = st.d and 1 or 0 end
     end
+    f.BackgroundColor3 = st.d and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(40, 40, 40)
 end)
 
-print("LOADED! Matthew Hippo ready!")
+print("MATTHEW HIPPO LOADED!")
