@@ -50,7 +50,7 @@ do
             end
         end
     end
-    print("Nexa Hub")
+    print("Nexa")
 end
 
 local Services = {
@@ -306,7 +306,7 @@ local function kickPlayer()
         TeleportService:Teleport(1818, LocalPlayer)
     end)
     pcall(function()
-        LocalPlayer:Kick("\nexa on top")
+        LocalPlayer:Kick("Nexa On TOPPPP")
     end)
 end
 
@@ -7438,7 +7438,7 @@ task.spawn(function()
         authors.Size = UDim2.new(0, 150, 1, 0)
         authors.Position = UDim2.new(0, 122, 0, 0)
         authors.BackgroundTransparency = 1
-        authors.Text = "made by rassa"
+        authors.Text = "made by Nicolas"
         authors.Font = Enum.Font.GothamBold
         authors.TextSize = 10
         authors.TextColor3 = Theme.TextSecondary
@@ -9071,7 +9071,7 @@ function buildBullysSettingsUI()
     hTitle.Size = UDim2.new(0, 120, 1, 0)
     hTitle.Position = UDim2.new(0, 12, 0, 0)
     hTitle.BackgroundTransparency = 1
-    hTitle.Text = " Nexa Hub"
+    hTitle.Text = "Nexa HUB"
     hTitle.Font = Enum.Font.GothamBlack
     hTitle.TextSize = 16
     hTitle.TextColor3 = C().TP
